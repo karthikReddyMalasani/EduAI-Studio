@@ -29,21 +29,18 @@ For each key concept: definition, simple explanation, important points, and comm
 
 ${generateMindMap ? `# 🗺️ 3. MINDMAP & HIERARCHY
 Provide a visual representation of the topic.
-You MUST use a Mermaid.js diagram using these CRITICAL rules:
-1. Start with \`graph TD\`
-2. Use alphanumeric IDs for nodes (e.g., A, B1, C2).
-3. ALWAYS wrap the label in double quotes: A["Your Label Here"]
-4. NEVER use special characters like (), [], {}, or --> inside the quotes.
-5. Keep the structure simple and hierarchical.
+You MUST use a Mermaid.js diagram.
+STRICT SYNTAX RULES:
+- Start with \`graph TD\`
+- Use ONLY alphanumeric IDs (A, B, C)
+- ALWAYS use quoted labels: A["Your Text"]
+- NEVER use special characters like (), [], {}, --> inside labels.
 Example:
 \`\`\`mermaid
 graph TD
-  ROOT["Main Topic"]
-  ROOT --> SUB1["Subtopic A"]
-  ROOT --> SUB2["Subtopic B"]
-  SUB1 --> DET1["Detail A1"]
+  A["Main"] --> B["Sub"]
 \`\`\`
-Do not use any other Mermaid syntax like 'mindmap' or 'sequenceDiagram' unless specifically asked.` : ''}
+Do NOT use Mermaid diagrams in any other section. Use plain text or markdown tables elsewhere.` : ''}
 
 # 📚 ${generateMindMap ? '4' : '3'}. IN-DEPTH EXPLANATION
 Detailed theoretical explanation. If it's a scientific/math topic, include derivations, rules, and fundamental principles. If history/arts, include context and impact. Include a comparison table if applicable.
