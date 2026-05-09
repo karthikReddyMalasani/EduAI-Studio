@@ -1,3 +1,2 @@
-[build]
-  command = "npm run build"
-  publish = ".next"
+# No explicit build settings needed for Next.js on Netlify
+# Netlify will auto-detect Next.js and use the Essential Next.js plugin.
