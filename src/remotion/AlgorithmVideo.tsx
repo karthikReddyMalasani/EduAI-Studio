@@ -9,7 +9,7 @@ export interface AlgorithmStep {
   activeLines: number[];
 }
 
-export interface AlgorithmVideoProps {
+export interface AlgorithmVideoProps extends Record<string, unknown> {
   title: string;
   array: number[];
   steps: AlgorithmStep[];

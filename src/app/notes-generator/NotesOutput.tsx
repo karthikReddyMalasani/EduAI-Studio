@@ -31,9 +31,9 @@ export default function NotesOutput({ notes, topic, audience, onReset }: Props) 
     const opt = {
       margin:       0.5,
       filename:     `${topic.replace(/\s+/g,"-")}-notes.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
+      image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#1a1f2b' }, // Maintain dark mode background
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
     };
     html2pdf().set(opt).from(contentRef.current).save();
   };

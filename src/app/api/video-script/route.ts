@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const SITE_URL = process.env.URL || "https://eduai-studio.netlify.app";
 
 function buildPrompt(topic: string, audience: string, style: string, duration: string, mode: string): string {
   return `Generate an educational video JSON script for the topic: "${topic}".
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "http://localhost:3000",
+          "HTTP-Referer": SITE_URL,
           "X-Title": "EduAI Studio",
         },
         body: JSON.stringify({
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
           response_format: { type: "json_object" },
           max_tokens: 4096,
           temperature: 0.75,
+          stream: true,
         }),
       }
     );
@@ -97,19 +99,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const data = await apiResponse.json();
-    const content = data.choices[0]?.message?.content || "{}";
-    
-    let jsonResult;
-    try {
-      jsonResult = JSON.parse(content);
-    } catch (e) {
-      // Fallback to strip markdown if the model hallucinates it despite instructions
-      const stripped = content.replace(/```json/g, "").replace(/```/g, "").trim();
-      jsonResult = JSON.parse(stripped);
-    }
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = apiResponse.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-    return NextResponse.json({ script: jsonResult, topic, audience, style, duration, mode });
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  const text = parsed.choices?.[0]?.delta?.content || '';
+                  if (text) controller.enqueue(encoder.encode(text));
+                } catch {
+                  // skip malformed SSE chunks
+                }
+              }
+            }
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   } catch (error) {
     console.error("Video script generation error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -8,7 +8,7 @@ export interface GenericScene {
   narration: string;
 }
 
-export interface GenericVideoProps {
+export interface GenericVideoProps extends Record<string, unknown> {
   title: string;
   scenes: GenericScene[];
   showCaptions?: boolean;
