@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const SITE_URL = process.env.URL || "https://eduai-studio.netlify.app";
 
 function buildNotesPrompt(topic: string, audience: string, generateMCQs: boolean, generateMindMap: boolean): string {
   return `Generate comprehensive academic notes for the topic: "${topic}"
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "http://localhost:3000",
+          "HTTP-Referer": SITE_URL,
           "X-Title": "EduAI Studio",
         },
         body: JSON.stringify({
@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
           ],
           max_tokens: 4096,
           temperature: 0.6,
+          stream: true,
         }),
       }
     );
@@ -145,10 +146,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const data = await apiResponse.json();
-    const notes = data.choices[0]?.message?.content || "";
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = apiResponse.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-    return NextResponse.json({ notes, topic, audience });
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  const text = parsed.choices?.[0]?.delta?.content || '';
+                  if (text) controller.enqueue(encoder.encode(text));
+                } catch {
+                  // skip malformed SSE chunks
+                }
+              }
+            }
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   } catch (error) {
     console.error("Notes generation error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

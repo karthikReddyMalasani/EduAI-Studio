@@ -36,10 +36,23 @@ export default function NotesGeneratorPage() {
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ topic, audience, generateMCQs, generateMindMap }),
       });
-      const data = await res.json();
       clearInterval(interval);
-      if (!res.ok) { setError(data.error || "Generation failed. Please try again."); return; }
-      setNotes(data.notes);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Generation failed. Please try again.");
+        return;
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        setNotes(accumulated);
+      }
       setTimeout(() => outputRef.current?.scrollIntoView({ behavior:"smooth" }), 100);
     } catch { setError("Network error. Please check your connection."); }
     finally { clearInterval(interval); setLoading(false); setStepIdx(-1); }

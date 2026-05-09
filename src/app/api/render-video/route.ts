@@ -43,12 +43,14 @@ export async function POST(req: Request) {
 
     console.log("Rendering Media...");
     await renderMedia({
-      composition,
+      composition: {
+        ...composition,
+        durationInFrames: durationInFrames || 1200,
+      },
       serveUrl: bundled,
       codec: 'h264',
       outputLocation,
       inputProps,
-      durationInFrames: durationInFrames || 1200,
     });
 
     console.log("Render successful, reading file...");
