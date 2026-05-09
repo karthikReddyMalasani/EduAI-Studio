@@ -1,11 +1,12 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
+import { useCurrentFrame, useVideoConfig, spring, interpolate, AbsoluteFill, Audio } from "remotion";
 
 export interface GenericScene {
   keyword: string;
   emoji: string;
   bulletPoints: string[];
   narration: string;
+  durationInFrames?: number; // Optional dynamic duration
 }
 
 export interface GenericVideoProps extends Record<string, unknown> {
@@ -16,143 +17,179 @@ export interface GenericVideoProps extends Record<string, unknown> {
 
 export const GenericVideo: React.FC<GenericVideoProps> = ({ title, scenes, showCaptions = true }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames, width, height } = useVideoConfig();
 
-  // Each scene takes 4 seconds
-  const framesPerScene = fps * 4;
-  const currentSceneIndex = Math.min(Math.floor(frame / framesPerScene), scenes.length - 1);
-  const currentScene = scenes[currentSceneIndex];
+  // If scenes have dynamic durations, calculate cumulative frames
+  let cumulativeFrames = 0;
+  const sceneRanges = scenes.map(s => {
+    const start = cumulativeFrames;
+    const duration = s.durationInFrames || (fps * 5); // Default 5s if not specified
+    cumulativeFrames += duration;
+    return { start, end: cumulativeFrames };
+  });
+
+  const currentSceneIndex = sceneRanges.findIndex(r => frame >= r.start && frame < r.end);
+  const currentSceneIdx = currentSceneIndex === -1 ? scenes.length - 1 : currentSceneIndex;
+  const currentScene = scenes[currentSceneIdx];
+  const currentRange = sceneRanges[currentSceneIdx];
 
   if (!currentScene) {
-    return <div style={{ backgroundColor: "#0b0f19", flex: 1, color: "white" }}>Loading...</div>;
+    return <AbsoluteFill style={{ backgroundColor: "#0b0f19", color: "white" }}>Loading...</AbsoluteFill>;
   }
 
-  // Animation within the current scene
-  const frameWithinScene = frame % framesPerScene;
+  const frameWithinScene = frame - currentRange.start;
+  const sceneDuration = currentRange.end - currentRange.start;
   
-  // Emoji scale animation (pop in)
-  const emojiScale = spring({
+  // Transitions
+  const opacity = interpolate(frameWithinScene, [0, 15, sceneDuration - 15, sceneDuration], [0, 1, 1, 0]);
+  const scale = interpolate(frameWithinScene, [0, sceneDuration], [1, 1.05]);
+
+  // Emoji animation
+  const emojiSpring = spring({
     frame: frameWithinScene,
     fps,
-    config: { damping: 12 },
+    config: { damping: 10, stiffness: 100 },
   });
 
-  // Keyword slide up animation
-  const keywordY = interpolate(frameWithinScene, [0, 15], [50, 0], {
-    extrapolateRight: "clamp",
-  });
-  const keywordOpacity = interpolate(frameWithinScene, [0, 15], [0, 1], {
-    extrapolateRight: "clamp",
-  });
+  // Background Particles (Simple simulated glow)
+  const glowOpacity = interpolate(Math.sin(frame / 30), [-1, 1], [0.3, 0.6]);
 
   return (
-    <div
-      style={{
-        flex: 1,
-        backgroundColor: "#0b0f19",
-        display: "flex",
-        flexDirection: "column",
-        color: "white",
-        fontFamily: "sans-serif",
-        position: "relative",
-        overflow: "hidden"
-      }}
-    >
-      {/* Background Aura */}
+    <AbsoluteFill style={{ backgroundColor: "#0b0f19", color: "white", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+      {/* Dynamic Background */}
       <div style={{
         position: "absolute",
-        top: "50%",
-        left: "30%",
-        transform: "translate(-50%, -50%)",
-        width: "1200px",
-        height: "1200px",
-        background: "radial-gradient(circle, rgba(108, 99, 255, 0.15) 0%, transparent 70%)",
-        filter: "blur(80px)",
+        top: "-20%",
+        left: "-20%",
+        width: "140%",
+        height: "140%",
+        background: `radial-gradient(circle at 50% 50%, rgba(108, 99, 255, ${glowOpacity * 0.2}) 0%, transparent 70%)`,
+        filter: "blur(100px)",
         zIndex: 0
       }} />
 
+      {/* Grid Pattern Overlay */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+        backgroundSize: "40px 40px",
+        zIndex: 1
+      }} />
+
       {/* Header */}
-      <div style={{ padding: "40px 60px", zIndex: 10, borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center" }}>
-        <h1 style={{ fontSize: "40px", fontWeight: "bold", margin: 0, color: "#fff" }}>
-          EduAI <span style={{ color: "#6c63ff" }}>Studio</span> | {title}
-        </h1>
+      <div style={{ 
+        padding: "40px 80px", 
+        zIndex: 10, 
+        background: "rgba(11, 15, 25, 0.7)",
+        backdropFilter: "blur(10px)",
+        borderBottom: "1px solid rgba(255,255,255,0.1)", 
+        display: "flex", 
+        justifyContent: "space-between",
+        alignItems: "center" 
+      }}>
+        <div style={{ fontSize: "32px", fontWeight: "800", letterSpacing: "-1px" }}>
+          ⚡ EDU<span style={{ color: "#6c63ff" }}>AI</span> STUDIO
+        </div>
+        <div style={{ fontSize: "24px", opacity: 0.8, fontWeight: "500" }}>{title}</div>
       </div>
       
       {/* Main Content Area */}
-      <div style={{ display: "flex", flex: 1, padding: "60px", zIndex: 10 }}>
+      <div style={{ display: "flex", flex: 1, padding: "80px", zIndex: 10, opacity, transform: `scale(${scale})` }}>
         
-        {/* Left: Emoji and Keyword */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ fontSize: "250px", transform: `scale(${emojiScale})`, filter: "drop-shadow(0 0 40px rgba(108, 99, 255, 0.6))" }}>
+        {/* Left: Visual representation */}
+        <div style={{ flex: 1.2, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", position: "relative" }}>
+          <div style={{ 
+            position: "absolute",
+            width: "400px",
+            height: "400px",
+            background: "rgba(108, 99, 255, 0.2)",
+            borderRadius: "50%",
+            filter: "blur(60px)",
+            zIndex: -1
+          }} />
+          <div style={{ fontSize: "320px", transform: `scale(${emojiSpring})`, filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.5))" }}>
             {currentScene.emoji}
           </div>
-          <h2 style={{ 
-            fontSize: "60px", 
-            marginTop: "40px", 
-            color: "#43e6b5", 
-            transform: `translateY(${keywordY}px)`, 
-            opacity: keywordOpacity,
-            textShadow: "0 0 20px rgba(67, 230, 181, 0.4)"
+          <div style={{ 
+            marginTop: "60px",
+            fontSize: "72px",
+            fontWeight: "900",
+            background: "linear-gradient(to bottom, #fff, #a29bfe)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textAlign: "center"
           }}>
             {currentScene.keyword}
-          </h2>
+          </div>
         </div>
 
-        {/* Right: Bullet Points */}
-        <div style={{ flex: 1, paddingLeft: "80px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "40px" }}>
+        {/* Right: Key Takeaways */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: "30px", paddingLeft: "60px", borderLeft: "2px solid rgba(108, 99, 255, 0.2)" }}>
           {currentScene.bulletPoints.map((bullet, idx) => {
-            // Stagger the fade in of bullet points
-            const delay = 15 + (idx * 20); // 15 frames base + 20 frames per bullet
-            const bulletOpacity = interpolate(frameWithinScene - delay, [0, 15], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
-            const bulletX = interpolate(frameWithinScene - delay, [0, 15], [50, 0], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
+            const delay = 10 + (idx * 15);
+            const bOpacity = interpolate(frameWithinScene - delay, [0, 10], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+            const bX = interpolate(frameWithinScene - delay, [0, 10], [30, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
             return (
-              <div 
-                key={idx} 
-                style={{ 
-                  fontSize: "36px", 
-                  opacity: bulletOpacity, 
-                  transform: `translateX(${bulletX}px)`,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "20px"
-                }}
-              >
-                <span style={{ color: "#ff6584", fontSize: "40px" }}>•</span>
-                <span style={{ lineHeight: "1.4" }}>{bullet}</span>
+              <div key={idx} style={{ 
+                fontSize: "32px", 
+                opacity: bOpacity, 
+                transform: `translateX(${bX}px)`,
+                display: "flex",
+                gap: "20px",
+                lineHeight: "1.3",
+                background: "rgba(255,255,255,0.03)",
+                padding: "20px",
+                borderRadius: "16px",
+                border: "1px solid rgba(255,255,255,0.05)"
+              }}>
+                <span style={{ color: "#6c63ff" }}>✦</span>
+                {bullet}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Narration Subtitle */}
+      {/* Progress Bar */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "8px", background: "rgba(255,255,255,0.1)", zIndex: 30 }}>
+        <div style={{ 
+          width: `${(frame / durationInFrames) * 100}%`, 
+          height: "100%", 
+          background: "linear-gradient(90deg, #6c63ff, #43e6b5)",
+          boxShadow: "0 0 10px rgba(108, 99, 255, 0.8)"
+        }} />
+      </div>
+
+      {/* Captions */}
       {showCaptions && (
         <div style={{
           position: "absolute",
-          bottom: "50px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontSize: "36px",
-          backgroundColor: "rgba(0,0,0,0.8)",
-          border: "1px solid rgba(255,255,255,0.2)",
-          padding: "20px 40px",
-          borderRadius: "20px",
-          zIndex: 20,
-          textAlign: "center",
-          width: "80%",
-          backdropFilter: "blur(10px)"
+          bottom: "60px",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          zIndex: 40
         }}>
-          {currentScene.narration}
+          <div style={{
+            maxWidth: "70%",
+            fontSize: "32px",
+            textAlign: "center",
+            padding: "20px 40px",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(12px)",
+            borderRadius: "30px",
+            border: "1px solid rgba(255,255,255,0.15)",
+            color: "#fff",
+            lineHeight: "1.4",
+            fontWeight: "500",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+          }}>
+            {currentScene.narration}
+          </div>
         </div>
       )}
-
-    </div>
+    </AbsoluteFill>
   );
 };

@@ -7,7 +7,7 @@ function buildPrompt(topic: string, audience: string, style: string, duration: s
   return `Generate an educational video JSON script for the topic: "${topic}".
 Target Audience: ${audience}. Style: ${style}. Duration: ${duration}.
 
-First, classify the topic. If it is a specific coding algorithm or data structure that requires an array visualization (e.g., "Binary Search", "Kadane's Algorithm"), use the "algorithm" schema. For ANY other subject (Physics, Biology, History, Math, general programming concepts, etc.), use the "generic" schema.
+First, classify the topic. If it is a specific coding algorithm or data structure that requires an array visualization (e.g., "Binary Search", "Kadane's Algorithm", "Sort"), use the "algorithm" schema. For ANY other subject (Physics, Biology, History, Math, general programming concepts, etc.), use the "generic" schema.
 
 You must return ONLY a valid JSON object matching one of these two schemas. Do NOT wrap it in markdown code blocks.
 
@@ -21,7 +21,8 @@ SCHEMA 1 (algorithm):
       "index": 0,
       "currentSum": -2,
       "maxSum": -2,
-      "narration": "First, we look at..."
+      "narration": "First, we look at...",
+      "durationInFrames": 90 // Frames for this step (30fps, so 90 = 3s)
     }
   ]
 }
@@ -33,14 +34,17 @@ SCHEMA 2 (generic):
   "scenes": [
     {
       "keyword": "Main Concept (e.g. Sunlight)",
-      "emoji": "☀️", // A single massive visual emoji representing this scene
+      "emoji": "☀️",
       "bulletPoints": ["Point 1", "Point 2"],
-      "narration": "Voiceover script for this scene..."
+      "narration": "Voiceover script for this scene...",
+      "durationInFrames": 150 // Frames for this scene (30fps, so 150 = 5s)
     }
   ]
 }
 
-Ensure you provide at least 5-8 steps or scenes. Make the narration highly engaging.`;
+For "generic", use at least 6-10 scenes depending on the duration requested. 
+For "algorithm", provide a complete step-by-step trace.
+Ensure "narration" is educational, engaging, and perfectly tailored to the audience.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -92,9 +96,21 @@ export async function POST(req: NextRequest) {
     );
 
     if (!apiResponse.ok) {
-      const errorData = await apiResponse.json();
+      let errorMsg = `API error (${apiResponse.status})`;
+      try {
+        const contentType = apiResponse.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await apiResponse.json();
+          errorMsg = errorData?.error?.message || JSON.stringify(errorData);
+        } else {
+          const text = await apiResponse.text();
+          errorMsg = text.slice(0, 100) + (text.length > 100 ? "..." : "");
+        }
+      } catch (e) {
+        errorMsg = "Could not parse API error response";
+      }
       return NextResponse.json(
-        { error: `API error: ${errorData?.error?.message || JSON.stringify(errorData)}` },
+        { error: `OpenRouter Error: ${errorMsg}` },
         { status: apiResponse.status }
       );
     }

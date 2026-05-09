@@ -7,6 +7,7 @@ interface Props { notes: string; topic: string; audience: string; onReset: () =>
 
 export default function NotesOutput({ notes, topic, audience, onReset }: Props) {
   const [copied, setCopied] = useState(false);
+  const [fullScreenContent, setFullScreenContent] = useState<{ type: 'img' | 'mermaid', content: string } | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = () => {
@@ -81,16 +82,71 @@ export default function NotesOutput({ notes, topic, audience, onReset }: Props) 
           return (
             <div key={i} className={s.section}>
               <h2 className={s.secTitle}>{title}</h2>
-              <NotesBody text={body}/>
+              <NotesBody text={body} onImageClick={(url) => setFullScreenContent({ type: 'img', content: url })} onMermaidClick={(chart) => setFullScreenContent({ type: 'mermaid', content: chart })} />
             </div>
           );
-        }) : <NotesBody text={notes}/>}
+        }) : <NotesBody text={notes} onImageClick={(url) => setFullScreenContent({ type: 'img', content: url })} onMermaidClick={(chart) => setFullScreenContent({ type: 'mermaid', content: chart })} />}
       </div>
+
+      {fullScreenContent && (
+        <FullScreenModal 
+          data={fullScreenContent} 
+          onClose={() => setFullScreenContent(null)} 
+        />
+      )}
     </div>
   );
 }
 
-function NotesBody({ text }: { text: string }) {
+function FullScreenModal({ data, onClose }: { data: { type: 'img' | 'mermaid', content: string }, onClose: () => void }) {
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(0,0,0,0.95)",
+      zIndex: 1000,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "40px",
+      backdropFilter: "blur(10px)"
+    }} onClick={onClose}>
+      <button 
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          background: "rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          color: "white",
+          width: "40px",
+          height: "40px",
+          borderRadius: "50%",
+          cursor: "pointer",
+          fontSize: "20px"
+        }}
+      >✕</button>
+      
+      <div 
+        style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {data.type === 'img' ? (
+          <img src={data.content} alt="Full Screen" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: "12px", boxShadow: "0 0 50px rgba(0,0,0,0.5)" }} />
+        ) : (
+          <div style={{ width: "90%", background: "rgba(255,255,255,0.05)", padding: "40px", borderRadius: "20px" }}>
+             <MermaidDiagram chart={data.content} isFullScreen />
+          </div>
+        )}
+      </div>
+      <p style={{ color: "#aaa", marginTop: "20px" }}>Click anywhere outside to close</p>
+    </div>
+  );
+}
+
+function NotesBody({ text, onImageClick, onMermaidClick }: { text: string, onImageClick: (url: string) => void, onMermaidClick: (chart: string) => void }) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
@@ -98,6 +154,20 @@ function NotesBody({ text }: { text: string }) {
   while (i < lines.length) {
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
+
+    // Check for image
+    const imgMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+    if (imgMatch) {
+      const url = imgMatch[2];
+      elements.push(
+        <div key={`img-${i}`} style={{ position: "relative", cursor: "zoom-in", margin: "20px 0" }} onClick={() => onImageClick(url)}>
+          <img src={url} alt={imgMatch[1]} style={{ maxWidth: "100%", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)" }} />
+          <div style={{ position: "absolute", top: "10px", right: "10px", background: "rgba(0,0,0,0.6)", padding: "5px 10px", borderRadius: "8px", fontSize: "12px", color: "white" }}>🔍 Full Screen</div>
+        </div>
+      );
+      i++;
+      continue;
+    }
 
     if (line.startsWith("## ")) {
       elements.push(<h3 key={i} className={s.h3} style={{color: '#43e6b5'}}>{line.replace(/^##\s*/, "")}</h3>);
@@ -128,7 +198,7 @@ function NotesBody({ text }: { text: string }) {
       while (i < lines.length && !lines[i].startsWith("```")) { codeLines.push(lines[i]); i++; }
       const codeStr = codeLines.join("\n");
       if (lang === "mermaid") {
-        elements.push(<MermaidDiagram key={i} chart={codeStr} />);
+        elements.push(<MermaidDiagram key={i} chart={codeStr} onFullScreen={() => onMermaidClick(codeStr)} />);
       } else if (lang === "mcq") {
         elements.push(<InteractiveMCQList key={i} dataStr={codeStr} />);
       } else {
@@ -155,7 +225,6 @@ function NotesBody({ text }: { text: string }) {
 
 function formatInline(text: string): string {
   return text
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "<img src='$2' alt='$1' style='max-width:100%; border-radius:10px; margin: 15px 0; border: 1px solid rgba(255,255,255,0.1);' />")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>");
@@ -163,17 +232,18 @@ function formatInline(text: string): string {
 
 mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
-function MermaidDiagram({ chart }: { chart: string }) {
+function MermaidDiagram({ chart, onFullScreen, isFullScreen = false }: { chart: string, onFullScreen?: () => void, isFullScreen?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current) {
-      mermaid.render(`mermaid-${Math.random().toString(36).substring(7)}`, chart).then(({ svg }) => {
+      const id = `mermaid-${Math.random().toString(36).substring(7)}`;
+      mermaid.render(id, chart).then(({ svg }) => {
         if (ref.current) {
           ref.current.innerHTML = svg;
           const svgElement = ref.current.querySelector('svg');
           if (svgElement) {
             svgElement.style.width = '100%';
-            svgElement.style.height = 'auto';
+            svgElement.style.height = isFullScreen ? '80vh' : 'auto';
             svgElement.style.maxWidth = '100%';
           }
         }
@@ -182,10 +252,39 @@ function MermaidDiagram({ chart }: { chart: string }) {
         if (ref.current) ref.current.innerHTML = "<div style='color:red'>Invalid Mermaid diagram</div>";
       });
     }
-  }, [chart]);
+  }, [chart, isFullScreen]);
   
   return (
-    <div style={{ width: "100%", margin: "20px 0", background: "rgba(0,0,0,0.2)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "center", padding: "20px" }}>
+    <div style={{ 
+      width: "100%", 
+      margin: isFullScreen ? "0" : "20px 0", 
+      background: "rgba(0,0,0,0.2)", 
+      borderRadius: "12px", 
+      border: isFullScreen ? "none" : "1px solid rgba(255,255,255,0.05)", 
+      display: "flex", 
+      flexDirection: "column",
+      alignItems: "center", 
+      padding: isFullScreen ? "0" : "20px",
+      position: "relative"
+    }}>
+      {!isFullScreen && onFullScreen && (
+        <button 
+          onClick={onFullScreen}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            background: "rgba(108, 99, 255, 0.2)",
+            border: "1px solid #6c63ff",
+            color: "#fff",
+            padding: "5px 10px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            cursor: "pointer",
+            zIndex: 10
+          }}
+        >🔍 Full Screen</button>
+      )}
       <div ref={ref} style={{ width: "100%" }} />
     </div>
   );

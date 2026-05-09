@@ -3,9 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const SITE_URL = process.env.URL || "https://eduai-studio.netlify.app";
 
-function buildNotesPrompt(topic: string, audience: string, generateMCQs: boolean, generateMindMap: boolean): string {
+function buildNotesPrompt(topic: string, audience: string, generateMCQs: boolean, generateMindMap: boolean, format: string): string {
+  let formatInstruction = "";
+  if (format === "simple") {
+    formatInstruction = "Use simple language, short paragraphs, and many analogies. Focus on making the concept extremely easy to understand for a layperson.";
+  } else if (format === "revision") {
+    formatInstruction = "Focus on the 'Cheat Sheet' aspect. Use bullet points extensively. Highlight core formulas, keywords, and must-know facts. Be concise and exam-oriented.";
+  } else {
+    formatInstruction = "Follow a high-quality academic textbook format. Provide deep theoretical explanations, detailed context, and structured academic rigor.";
+  }
+
   return `Generate comprehensive academic notes for the topic: "${topic}"
 Target Audience: ${audience}
+Preferred Format: ${format.toUpperCase()} (${formatInstruction})
 
 First, determine the subject domain of this topic (e.g., Computer Science, Biology, Physics, Mathematics, History, etc.). Adapt your explanations perfectly to this domain.
 
@@ -94,7 +104,7 @@ Be highly accurate, perfectly tailored to the subject domain, and exam-oriented.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { topic, audience, generateMCQs = true, generateMindMap = false } = body;
+    const { topic, audience, generateMCQs = true, generateMindMap = false, format = "detailed" } = body;
 
     if (!topic || !audience) {
       return NextResponse.json(
@@ -110,7 +120,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prompt = buildNotesPrompt(topic, audience, generateMCQs, generateMindMap);
+    const prompt = buildNotesPrompt(topic, audience, generateMCQs, generateMindMap, format);
 
     const apiResponse = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -140,9 +150,21 @@ export async function POST(req: NextRequest) {
     );
 
     if (!apiResponse.ok) {
-      const errorData = await apiResponse.json();
+      let errorMsg = `API error (${apiResponse.status})`;
+      try {
+        const contentType = apiResponse.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await apiResponse.json();
+          errorMsg = errorData?.error?.message || JSON.stringify(errorData);
+        } else {
+          const text = await apiResponse.text();
+          errorMsg = text.slice(0, 100) + (text.length > 100 ? "..." : "");
+        }
+      } catch (e) {
+        errorMsg = "Could not parse API error response";
+      }
       return NextResponse.json(
-        { error: `API error: ${errorData?.error?.message || JSON.stringify(errorData)}` },
+        { error: `OpenRouter Error: ${errorMsg}` },
         { status: apiResponse.status }
       );
     }

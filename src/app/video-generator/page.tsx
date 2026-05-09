@@ -45,7 +45,10 @@ export default function VideoGeneratorPage() {
   const [scriptData, setScriptData] = useState<any>(null);
   const [showCaptions, setShowCaptions] = useState(true);
   const [error, setError] = useState("");
+  const [statusLog, setStatusLog] = useState<string[]>([]);
   const outputRef = useRef<HTMLDivElement>(null);
+
+  const addLog = (msg: string) => setStatusLog(prev => [...prev.slice(-4), msg]);
 
   // WebM Export State
   const [isRecording, setIsRecording] = useState(false);
@@ -59,8 +62,14 @@ export default function VideoGeneratorPage() {
 
   const handleGenerate = async () => {
     if (!canGenerate || loading) return;
-    setLoading(true); setError(""); setScriptData(null); setStepIdx(0);
-    const interval = setInterval(() => setStepIdx(i => Math.min(i + 1, STEPS.length - 1)), 1800);
+    setLoading(true); setError(""); setScriptData(null); setStepIdx(0); setStatusLog(["Initializing engine..."]);
+    const interval = setInterval(() => {
+      setStepIdx(i => {
+        const next = Math.min(i + 1, STEPS.length - 1);
+        addLog(STEPS[next]);
+        return next;
+      });
+    }, 1800);
     try {
       const res = await fetch("/api/video-script", {
         method:"POST",
@@ -70,8 +79,20 @@ export default function VideoGeneratorPage() {
       clearInterval(interval);
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Generation failed. Please try again.");
+        let errorMsg = "Generation failed. Please try again.";
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } else {
+            const text = await res.text();
+            errorMsg = `Server error (${res.status}): ${text.includes("<!DOCTYPE") ? "Received HTML instead of JSON." : text.slice(0, 100)}`;
+          }
+        } catch (e) {
+          errorMsg = `Error parsing server response (${res.status})`;
+        }
+        setError(errorMsg);
         return;
       }
 
@@ -83,6 +104,9 @@ export default function VideoGeneratorPage() {
         const { done, value } = await reader.read();
         if (done) break;
         content += decoder.decode(value, { stream: true });
+        
+        // Try to parse partial JSON for "interactive" feel (optional, but complex)
+        // For now, we'll just show the raw content in a preview box
       }
 
       let jsonResult;
@@ -144,8 +168,20 @@ export default function VideoGeneratorPage() {
         body: JSON.stringify({ scriptData, topic }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Render failed");
+        let errorMsg = "Render failed";
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } else {
+            const text = await res.text();
+            errorMsg = `Server error (${res.status}): ${text.includes("<!DOCTYPE") ? "Received HTML instead of JSON." : text.slice(0, 100)}`;
+          }
+        } catch (e) {
+          errorMsg = `Error parsing server response (${res.status})`;
+        }
+        throw new Error(errorMsg);
       }
       
       const blob = await res.blob();
@@ -244,12 +280,21 @@ export default function VideoGeneratorPage() {
               : <span className={s.genBtnInner}>🎬 Generate Video</span>}
           </button>
           {loading && (
-            <div className={s.steps}>
-              {STEPS.map((st,i) => (
-                <div key={st} className={`${s.step} ${i===stepIdx?s.stepActive:""} ${i<stepIdx?s.stepDone:""}`}>
-                  <span className={s.stepDot}/>{st}
-                </div>
-              ))}
+            <div className={s.stepsContainer}>
+              <div className={s.steps}>
+                {STEPS.map((st,i) => (
+                  <div key={st} className={`${s.step} ${i===stepIdx?s.stepActive:""} ${i<stepIdx?s.stepDone:""}`}>
+                    <span className={s.stepDot}/>{st}
+                  </div>
+                ))}
+              </div>
+              <div className={s.console}>
+                {statusLog.map((log, i) => (
+                  <div key={i} className={s.logLine} style={{ opacity: 1 - (statusLog.length - 1 - i) * 0.2 }}>
+                    <span style={{ color: "#6c63ff" }}>&gt;</span> {log}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -309,7 +354,7 @@ export default function VideoGeneratorPage() {
                 </button>
               </div>
             </div>
-            <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
               {scriptData.videoType === "generic" && scriptData.scenes ? (
                 <Player
                   component={GenericVideo}
@@ -318,7 +363,7 @@ export default function VideoGeneratorPage() {
                     scenes: scriptData.scenes || [],
                     showCaptions,
                   }}
-                  durationInFrames={(scriptData.scenes.length * 120) + 30}
+                  durationInFrames={scriptData.scenes.reduce((acc: number, s: any) => acc + (s.durationInFrames || 150), 0) + 30}
                   compositionWidth={1920}
                   compositionHeight={1080}
                   fps={30}
@@ -336,7 +381,7 @@ export default function VideoGeneratorPage() {
                     steps: scriptData.steps || [],
                     showCaptions,
                   }}
-                  durationInFrames={(scriptData.steps.length * 60) + 30}
+                  durationInFrames={scriptData.steps.reduce((acc: number, s: any) => acc + (s.durationInFrames || 90), 0) + 30}
                   compositionWidth={1920}
                   compositionHeight={1080}
                   fps={30}
@@ -351,7 +396,26 @@ export default function VideoGeneratorPage() {
                 </div>
               )}
             </div>
-            <button className={s.clearBtn} style={{ marginTop: "20px", display: "block" }} onClick={() => setScriptData(null)}>Reset</button>
+
+            {/* Export & Tips Guide */}
+            <div className={s.guideGrid} style={{ marginTop: "40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <div className={s.guideCard} style={{ background: "rgba(255,255,255,0.03)", padding: "24px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <h3 style={{ color: "#43e6b5", marginBottom: "15px", fontSize: "18px" }}>🚀 Pro Tip: Flawless Export</h3>
+                <p style={{ color: "#aaa", fontSize: "14px", lineHeight: "1.6" }}>
+                  For the most reliable HD export without server-side errors, use <strong>Export WebM</strong>. 
+                  When the browser prompt appears, select <b>"This Tab"</b> and check <b>"Also share tab audio"</b> to capture the full experience.
+                </p>
+              </div>
+              <div className={s.guideCard} style={{ background: "rgba(255,255,255,0.03)", padding: "24px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <h3 style={{ color: "#6c63ff", marginBottom: "15px", fontSize: "18px" }}>🎬 Content Guide</h3>
+                <p style={{ color: "#aaa", fontSize: "14px", lineHeight: "1.6" }}>
+                  The AI has automatically calculated scene durations to match your topic complexity. 
+                  Toggle captions to check the script accuracy before final recording.
+                </p>
+              </div>
+            </div>
+
+            <button className={s.clearBtn} style={{ marginTop: "30px", display: "block", marginInline: "auto" }} onClick={() => setScriptData(null)}>Create Another Video</button>
           </div>
         )}
       </main>

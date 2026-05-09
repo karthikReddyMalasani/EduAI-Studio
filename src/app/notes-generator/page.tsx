@@ -22,6 +22,7 @@ export default function NotesGeneratorPage() {
   const [error, setError] = useState("");
   const [generateMCQs, setGenerateMCQs] = useState(true);
   const [generateMindMap, setGenerateMindMap] = useState(true);
+  const [format, setFormat] = useState("detailed"); // "detailed", "simple", "revision"
   const outputRef = useRef<HTMLDivElement>(null);
 
   const canGenerate = topic.trim() && audience;
@@ -34,12 +35,25 @@ export default function NotesGeneratorPage() {
       const res = await fetch("/api/notes", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ topic, audience, generateMCQs, generateMindMap }),
+        body: JSON.stringify({ topic, audience, generateMCQs, generateMindMap, format }),
       });
       clearInterval(interval);
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Generation failed. Please try again.");
+        let errorMsg = "Generation failed. Please try again.";
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } else {
+            const text = await res.text();
+            // If it's a large HTML page, just show the status and a snippet
+            errorMsg = `Server error (${res.status}): ${text.includes("<!DOCTYPE") ? "Received HTML instead of JSON. This usually means a 404 or 500 error." : text.slice(0, 100)}`;
+          }
+        } catch (e) {
+          errorMsg = `Error parsing server response (${res.status})`;
+        }
+        setError(errorMsg);
         return;
       }
 
@@ -96,9 +110,38 @@ export default function NotesGeneratorPage() {
               ))}
             </div>
           </div>
+          <div className={s.section}>
+            <label className={s.label}><span className={s.labelIcon}>📝</span>Note Format</label>
+            <div className={s.formatGrid} style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginTop: "10px" }}>
+              {[
+                { id: "detailed", name: "Detailed", icon: "📚", desc: "Textbook style" },
+                { id: "simple", name: "Simple", icon: "🌱", desc: "Easy to follow" },
+                { id: "revision", name: "Revision", icon: "⚡", desc: "Quick recap" },
+              ].map(f => (
+                <button 
+                  key={f.id} 
+                  className={`${s.formatCard} ${format === f.id ? s.formatCardActive : ""}`} 
+                  onClick={() => setFormat(f.id)}
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: `1.5px solid ${format === f.id ? "#6c63ff" : "rgba(255,255,255,0.1)"}`,
+                    borderRadius: "12px",
+                    padding: "12px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <div style={{ fontSize: "1.2rem", marginBottom: "4px" }}>{f.icon}</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "700", color: "#fff" }}>{f.name}</div>
+                  <div style={{ fontSize: "0.7rem", color: "#aaa" }}>{f.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className={s.sectionList}>
             <div className={s.sectionListTitle}>⚙️ Extra Features</div>
-            <div style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
+            <div style={{ display: "flex", gap: "20px", marginTop: "10px", flexWrap: "wrap" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", color: "white", cursor: "pointer", fontSize: "16px" }}>
                 <input 
                   type="checkbox" 
