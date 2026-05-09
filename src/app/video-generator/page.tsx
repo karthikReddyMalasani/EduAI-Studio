@@ -67,10 +67,27 @@ export default function VideoGeneratorPage() {
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ topic, audience, style, duration, mode }),
       });
-      const data = await res.json();
-      clearInterval(interval);
-      if (!res.ok) { setError(data.error || "Generation failed. Please try again."); return; }
-      setScriptData(data.script);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Generation failed. Please try again.");
+        return;
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let content = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        content += decoder.decode(value, { stream: true });
+      }
+      let jsonResult;
+      try {
+        jsonResult = JSON.parse(content);
+      } catch {
+        const stripped = content.replace(/```json/g, "").replace(/```/g, "").trim();
+        jsonResult = JSON.parse(stripped);
+      }
+      setScriptData(jsonResult);
       setTimeout(() => outputRef.current?.scrollIntoView({ behavior:"smooth" }), 100);
     } catch { setError("Network error. Please check your connection."); }
     finally { clearInterval(interval); setLoading(false); setStepIdx(-1); }
