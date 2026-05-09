@@ -28,7 +28,19 @@ Definition, why it matters, real-world relevance, and core applications.
 For each key concept: definition, simple explanation, important points, and common misconceptions.
 
 ${generateMindMap ? `# 🗺️ 3. MINDMAP & HIERARCHY
-Provide a visual representation of the topic. If possible, use an ASCII tree, nested bullet points, or a Mermaid.js diagram to show how all the sub-topics connect to the main concept.` : ''}
+Provide a visual representation of the topic.
+You MUST use a Mermaid.js diagram using the following strict rules:
+- Start with \`graph TD\`
+- Use the syntax: ID["Label Text"]
+- ALWAYS wrap labels in double quotes to avoid syntax errors.
+- Example:
+  \`\`\`mermaid
+  graph TD
+    A["Main Topic"] --> B["Sub Topic 1"]
+    A --> C["Sub Topic 2"]
+    B --> D["Detail 1"]
+  \`\`\`
+- Do not use special characters like (), [], {}, or > inside the labels unless they are quoted.` : ''}
 
 # 📚 ${generateMindMap ? '4' : '3'}. IN-DEPTH EXPLANATION
 Detailed theoretical explanation. If it's a scientific/math topic, include derivations, rules, and fundamental principles. If history/arts, include context and impact. Include a comparison table if applicable.
