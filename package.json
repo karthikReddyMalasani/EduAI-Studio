@@ -9,9 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@remotion/bundler": "^4.0.459",
+    "@remotion/cli": "^4.0.459",
+    "@remotion/player": "^4.0.459",
+    "@remotion/renderer": "^4.0.459",
+    "html2pdf.js": "^0.14.0",
+    "mermaid": "^11.14.0",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "remotion": "^4.0.459"
   },
   "devDependencies": {
     "@types/node": "^20",

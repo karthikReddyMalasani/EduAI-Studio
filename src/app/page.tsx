@@ -1,66 +1,59 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from "next/link";
+import styles from "./home.module.css";
 
-export default function Home() {
+export default function HomePage() {
   return (
     <div className={styles.page}>
+      <div className={styles.orb1} /><div className={styles.orb2} /><div className={styles.orb3} />
+      <header className={styles.header}>
+        <div className={styles.logo}>⚡ EduAI Studio</div>
+        <p className={styles.tagline}>AI-Powered Educational Content — <span>Scripts · Notes · Scripts</span></p>
+      </header>
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <h1 className={styles.heroTitle}>
+          Create <span className={styles.grad1}>Animated</span> Videos<br />
+          &amp; <span className={styles.grad2}>Expert Notes</span> with AI
+        </h1>
+        <p className={styles.heroSub}>
+          Transform any topic into production-ready animated video scripts or comprehensive academic notes in seconds.
+        </p>
+        <div className={styles.tools}>
+          <Link href="/video-generator" id="tool-video" className={styles.toolCard}>
+            <div className={styles.toolIcon}>🎬</div>
+            <div className={styles.toolBadge} style={{background:"rgba(108,99,255,0.18)",color:"#9d97ff"}}>NEW</div>
+            <h2 className={styles.toolTitle}>Animated Video Generator</h2>
+            <p className={styles.toolDesc}>Generate full scene-by-scene animated video scripts with narration, effects, and export instructions.</p>
+            <div className={styles.toolModes}>
+              <span className={styles.modeTag} style={{borderColor:"#ff6584",color:"#ff6584"}}>⚡ Algorithm Viz</span>
+              <span className={styles.modeTag} style={{borderColor:"#a29bfe",color:"#a29bfe"}}>🎬 Cinematic</span>
+              <span className={styles.modeTag} style={{borderColor:"#43e6b5",color:"#43e6b5"}}>✨ Storytelling</span>
+            </div>
+            <div className={styles.toolAction}>Generate Script →</div>
+          </Link>
+          <Link href="/notes-generator" id="tool-notes" className={styles.toolCard}>
+            <div className={styles.toolIcon}>📚</div>
+            <div className={styles.toolBadge} style={{background:"rgba(67,230,181,0.15)",color:"#43e6b5"}}>16 SECTIONS</div>
+            <h2 className={styles.toolTitle}>Academic Notes Generator</h2>
+            <p className={styles.toolDesc}>Get exam-ready, interview-oriented comprehensive notes with code, MCQs, roadmaps, and cheat sheets.</p>
+            <div className={styles.toolModes}>
+              <span className={styles.modeTag} style={{borderColor:"#ffd700",color:"#ffd700"}}>📝 Exam Prep</span>
+              <span className={styles.modeTag} style={{borderColor:"#43e6b5",color:"#43e6b5"}}>💻 Coding</span>
+              <span className={styles.modeTag} style={{borderColor:"#ff6584",color:"#ff6584"}}>🎯 Interviews</span>
+            </div>
+            <div className={styles.toolAction}>Generate Notes →</div>
+          </Link>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className={styles.stats}>
+          <div className={styles.stat}><span className={styles.statNum}>10+</span><span className={styles.statLabel}>Sections per Output</span></div>
+          <div className={styles.statDiv}/>
+          <div className={styles.stat}><span className={styles.statNum}>3</span><span className={styles.statLabel}>Video Modes</span></div>
+          <div className={styles.statDiv}/>
+          <div className={styles.stat}><span className={styles.statNum}>16</span><span className={styles.statLabel}>Notes Sections</span></div>
+          <div className={styles.statDiv}/>
+          <div className={styles.stat}><span className={styles.statNum}>∞</span><span className={styles.statLabel}>Topics</span></div>
         </div>
       </main>
+      <footer className={styles.footer}>Powered by <strong>Groq · LLaMA 3.3</strong> · Built for Educators & Students</footer>
     </div>
   );
 }
