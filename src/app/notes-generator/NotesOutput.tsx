@@ -237,18 +237,37 @@ function MermaidDiagram({ chart, onFullScreen, isFullScreen = false }: { chart: 
 
   const sanitizeMermaid = (code: string) => {
     let clean = code.trim();
-    // Remove triple backticks if present
+    // 1. Remove triple backticks if present
     clean = clean.replace(/```mermaid/g, "").replace(/```/g, "").trim();
     
-    // Ensure it starts with a valid keyword
-    if (!clean.startsWith("graph") && !clean.startsWith("mindmap") && !clean.startsWith("flowchart") && !clean.startsWith("sequenceDiagram") && !clean.startsWith("gantt") && !clean.startsWith("classDiagram") && !clean.startsWith("stateDiagram") && !clean.startsWith("erDiagram")) {
+    // 2. Ensure it starts with a valid keyword
+    const validKeywords = ["graph", "mindmap", "flowchart", "sequenceDiagram", "gantt", "classDiagram", "stateDiagram", "erDiagram"];
+    if (!validKeywords.some(k => clean.startsWith(k))) {
       clean = "graph TD\n" + clean;
     }
 
-    // Fix common AI error: using labels without quotes if they have special chars
-    // This is a bit risky but we can try to wrap labels in quotes if they contain ( )
-    // Actually, better to just let mermaid try and show error if it fails
-    return clean;
+    // 3. Aggressive Syntax Fixing
+    const lines = clean.split("\n");
+    const fixedLines = lines.map(line => {
+      let l = line.trim();
+      if (!l || validKeywords.some(k => l.startsWith(k))) return l;
+
+      // Match connections like A --> B or A-->B
+      // If they don't have quotes/brackets, wrap them
+      if (l.includes("-->")) {
+        return l.split("-->").map(part => {
+          const p = part.trim();
+          // If already has quotes/brackets, leave it
+          if (p.includes("[") || p.includes("\"") || p.includes("(")) return p;
+          // Otherwise, turn "Label Text" into ID["Label Text"]
+          const id = p.replace(/[^a-zA-Z0-7]/g, ""); // Create a safe ID
+          return `${id}["${p}"]`;
+        }).join(" --> ");
+      }
+      return l;
+    });
+
+    return fixedLines.join("\n");
   };
 
   useEffect(() => {
