@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const SITE_URL = process.env.URL || "https://eduai-studio.netlify.app";
 
 function buildPrompt(topic: string, audience: string, style: string, duration: string, mode: string): string {
