@@ -11,13 +11,16 @@ const AUDIENCES = [
   { value:"Interview Prep", icon:"💼", desc:"Job Seekers" },
   { value:"Advanced Learner", icon:"🚀", desc:"Expert Level" },
 ];
-const STEPS = ["Researching topic","Building concepts","Writing theory","Generating code","Creating MCQs","Finalizing notes"];
-
 export default function NotesGeneratorPage() {
   const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
   const [loading, setLoading] = useState(false);
   const [stepIdx, setStepIdx] = useState(-1);
+  const STEPS = [
+    "Overview", "Concepts", "Mindmap", "Theory", "Process", 
+    "Examples", "Visuals", "Preparation", "MCQs", 
+    "Applications", "Revision", "Advanced"
+  ];
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [generateMCQs, setGenerateMCQs] = useState(true);
@@ -30,14 +33,12 @@ export default function NotesGeneratorPage() {
   const handleGenerate = async () => {
     if (!canGenerate || loading) return;
     setLoading(true); setError(""); setNotes(""); setStepIdx(0);
-    const interval = setInterval(() => setStepIdx(i => Math.min(i + 1, STEPS.length - 1)), 2000);
     try {
       const res = await fetch("/api/notes", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ topic, audience, generateMCQs, generateMindMap, format }),
       });
-      clearInterval(interval);
       if (!res.ok) {
         let errorMsg = "Generation failed. Please try again.";
         try {
@@ -66,10 +67,17 @@ export default function NotesGeneratorPage() {
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
         setNotes(accumulated);
+
+        // Dynamic step tracking: Look for "# 📖 1.", "# 🧠 2.", etc.
+        const match = accumulated.match(/#\s+.*?\s+(\d+)\./g);
+        if (match) {
+          const lastNum = parseInt(match[match.length - 1].match(/\d+/)![0]);
+          setStepIdx(Math.min(lastNum - 1, STEPS.length - 1));
+        }
       }
       setTimeout(() => outputRef.current?.scrollIntoView({ behavior:"smooth" }), 100);
     } catch { setError("Network error. Please check your connection."); }
-    finally { clearInterval(interval); setLoading(false); setStepIdx(-1); }
+    finally { setLoading(false); setStepIdx(-1); }
   };
 
   return (
@@ -77,6 +85,7 @@ export default function NotesGeneratorPage() {
       <div className={s.bg1}/><div className={s.bg2}/><div className={s.bg3}/>
       <nav className={s.nav}>
         <Link href="/" className={s.navBack}>← Home</Link>
+        <Link href="/history" className={s.navBack} style={{ marginLeft: "10px", borderColor: "#a29bfe", color: "#a29bfe" }}>📜 History</Link>
         <span className={s.navTitle}>Academic Notes Generator</span>
       </nav>
       <header className={s.header}>

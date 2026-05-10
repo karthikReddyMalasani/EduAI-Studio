@@ -8,6 +8,7 @@ export default function HomePage() {
       <header className={styles.header}>
         <div className={styles.logo}>⚡ EduAI Studio</div>
         <p className={styles.tagline}>AI-Powered Educational Content — <span>Scripts · Notes · Scripts</span></p>
+        <Link href="/history" className={styles.modeTag} style={{ marginTop: "15px", display: "inline-block", borderColor: "#6c63ff", color: "#6c63ff" }}>📜 View History</Link>
       </header>
       <main className={styles.main}>
         <h1 className={styles.heroTitle}>

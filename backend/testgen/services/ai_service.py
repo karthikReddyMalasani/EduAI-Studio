@@ -411,11 +411,25 @@ def _make_text_slide(title: str, subtitle: str, bg_color: tuple, title_color: tu
     img = Image.new("RGB", (W, H), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # Try to use a nice font, fallback to default
-    try:
-        font_title = ImageFont.truetype("arial.ttf", 64)
-        font_sub = ImageFont.truetype("arial.ttf", 32)
-    except Exception:
+    # Enhanced font searching for different OS
+    font_paths = [
+        "arial.ttf", "Arial.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/TTF/Arial.TTF",
+        "C:\\Windows\\Fonts\\arial.ttf"
+    ]
+    font_title = None
+    font_sub = None
+    
+    for path in font_paths:
+        try:
+            font_title = ImageFont.truetype(path, 64)
+            font_sub = ImageFont.truetype(path, 32)
+            break
+        except:
+            continue
+            
+    if not font_title:
         font_title = ImageFont.load_default()
         font_sub = ImageFont.load_default()
 

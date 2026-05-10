@@ -204,6 +204,7 @@ export default function VideoGeneratorPage() {
       <div className={s.bg1}/><div className={s.bg2}/><div className={s.bg3}/>
       <nav className={s.nav}>
         <Link href="/" className={s.navBack}>← Home</Link>
+        <Link href="/history" className={s.navBack} style={{ marginLeft: "10px", borderColor: "#a29bfe", color: "#a29bfe" }}>📜 History</Link>
         <span className={s.navTitle}>Video Script Generator</span>
       </nav>
       <header className={s.header}>
@@ -352,6 +353,22 @@ export default function VideoGeneratorPage() {
                 >
                   {showCaptions ? "👀 Hide Captions" : "💬 Show Captions"}
                 </button>
+                <button 
+                  onClick={() => setScriptData(null)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    color: "#aaa",
+                    padding: "8px 16px",
+                    borderRadius: "20px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: "bold",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  🔄 New Video
+                </button>
               </div>
             </div>
             <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
@@ -415,7 +432,6 @@ export default function VideoGeneratorPage() {
               </div>
             </div>
 
-            <button className={s.clearBtn} style={{ marginTop: "30px", display: "block", marginInline: "auto" }} onClick={() => setScriptData(null)}>Create Another Video</button>
           </div>
         )}
       </main>

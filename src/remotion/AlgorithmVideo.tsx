@@ -119,30 +119,63 @@ export const AlgorithmVideo: React.FC<AlgorithmVideoProps> = ({ title, array, st
           </div>
         </div>
 
-        {/* Status Dashboard */}
-        <div style={{ display: "flex", gap: "40px", width: "100%", justifyContent: "center" }}>
-          <div style={{ 
-            background: "rgba(255, 255, 255, 0.03)", 
-            padding: "30px 50px", 
-            borderRadius: "24px", 
-            border: "1px solid rgba(255,255,255,0.05)",
-            textAlign: "center",
-            minWidth: "250px"
-          }}>
-            <div style={{ color: "#aaa", fontSize: "18px", marginBottom: "10px", fontWeight: "600" }}>CURRENT SUM</div>
-            <div style={{ fontSize: "72px", color: "#ffd700", fontWeight: "900", letterSpacing: "-2px" }}>{currentStep.currentSum}</div>
+        {/* Status Dashboard & Code */}
+        <div style={{ display: "flex", gap: "40px", width: "100%", justifyContent: "center", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ 
+              background: "rgba(255, 255, 255, 0.03)", 
+              padding: "20px 40px", 
+              borderRadius: "24px", 
+              border: "1px solid rgba(255,255,255,0.05)",
+              textAlign: "center",
+              minWidth: "220px"
+            }}>
+              <div style={{ color: "#aaa", fontSize: "16px", marginBottom: "5px", fontWeight: "600" }}>CURRENT SUM</div>
+              <div style={{ fontSize: "56px", color: "#ffd700", fontWeight: "900" }}>{currentStep.currentSum}</div>
+            </div>
+            <div style={{ 
+              background: "rgba(255, 255, 255, 0.03)", 
+              padding: "20px 40px", 
+              borderRadius: "24px", 
+              border: "1px solid rgba(255,255,255,0.05)",
+              textAlign: "center",
+              minWidth: "220px"
+            }}>
+              <div style={{ color: "#aaa", fontSize: "16px", marginBottom: "5px", fontWeight: "600" }}>GLOBAL MAX</div>
+              <div style={{ fontSize: "56px", color: "#43e6b5", fontWeight: "900" }}>{currentStep.maxSum}</div>
+            </div>
           </div>
-          <div style={{ 
-            background: "rgba(255, 255, 255, 0.03)", 
-            padding: "30px 50px", 
-            borderRadius: "24px", 
-            border: "1px solid rgba(255,255,255,0.05)",
-            textAlign: "center",
-            minWidth: "250px"
-          }}>
-            <div style={{ color: "#aaa", fontSize: "18px", marginBottom: "10px", fontWeight: "600" }}>GLOBAL MAX</div>
-            <div style={{ fontSize: "72px", color: "#43e6b5", fontWeight: "900", letterSpacing: "-2px" }}>{currentStep.maxSum}</div>
-          </div>
+
+          {currentStep.code && (
+            <div style={{
+              background: "rgba(0, 0, 0, 0.3)",
+              padding: "25px",
+              borderRadius: "20px",
+              border: "1px solid rgba(108, 99, 255, 0.2)",
+              minWidth: "450px",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "20px",
+              color: "#d1d5db",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.3)"
+            }}>
+              <div style={{ color: "#6c63ff", fontSize: "14px", marginBottom: "15px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>Logic Execution</div>
+              {currentStep.code.split('\n').map((line, i) => {
+                const isActive = currentStep.activeLines?.includes(i + 1);
+                return (
+                  <div key={i} style={{ 
+                    padding: "4px 10px",
+                    background: isActive ? "rgba(108, 99, 255, 0.15)" : "transparent",
+                    borderLeft: `3px solid ${isActive ? "#6c63ff" : "transparent"}`,
+                    color: isActive ? "#fff" : "#94a3b8",
+                    transition: "all 0.2s"
+                  }}>
+                    <span style={{ opacity: 0.3, marginRight: "15px", fontSize: "14px" }}>{i + 1}</span>
+                    {line}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

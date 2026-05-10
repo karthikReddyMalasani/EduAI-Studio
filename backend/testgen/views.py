@@ -70,8 +70,9 @@ class GenerateView(APIView):
 
 class TestListView(APIView):
     def get(self, request):
-        # Each user sees only their own tests
-        tests = Test.objects.filter(user=request.user)
+        # Each user sees only their own tests. Anonymous users see public/unsaved tests.
+        user = request.user if request.user.is_authenticated else None
+        tests = Test.objects.filter(user=user)
         serializer = TestSummarySerializer(tests, many=True)
         return Response(serializer.data)
 
@@ -143,8 +144,9 @@ class StudyNoteView(APIView):
         return Response(serializer_out.data, status=status.HTTP_201_CREATED)
 
     def get(self, request):
-        # Each user sees only their own notes
-        notes = StudyNote.objects.filter(user=request.user)
+        # Each user sees only their own notes. Anonymous users see public/unsaved notes.
+        user = request.user if request.user.is_authenticated else None
+        notes = StudyNote.objects.filter(user=user)
         serializer = StudyNoteSerializer(notes, many=True)
         return Response(serializer.data)
 

@@ -41,7 +41,7 @@ export const GenericVideo: React.FC<GenericVideoProps> = ({ title, scenes, showC
   const sceneDuration = currentRange.end - currentRange.start;
   
   // Transitions
-  const opacity = interpolate(frameWithinScene, [0, 15, sceneDuration - 15, sceneDuration], [0, 1, 1, 0]);
+  const opacity = interpolate(frameWithinScene, [0, 5, sceneDuration - 5, sceneDuration], [0, 1, 1, 0]);
   const scale = interpolate(frameWithinScene, [0, sceneDuration], [1, 1.05]);
 
   // Emoji animation

@@ -62,4 +62,9 @@
 .output { margin-top:24px; }
 .footer { position:relative; z-index:1; text-align:center; padding:20px; color:var(--text3); font-size:0.78rem; }
 .gradFt { background:linear-gradient(135deg,#43e6b5,#6c63ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-@media(max-width:600px) { .nav { padding:16px 20px; } }
+.formatGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.formatCard { background: rgba(255,255,255,0.03); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; transition: all 0.2s; display: flex; flex-direction: column; gap: 4px; }
+.formatCard:hover { border-color: var(--border2); }
+.formatCardActive { border-color: var(--accent2) !important; background: rgba(67,230,181,0.08); }
+
+@media(max-width:600px) { .nav { padding:16px 20px; } .formatGrid { grid-template-columns: 1fr; } }

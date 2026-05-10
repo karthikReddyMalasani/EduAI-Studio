@@ -13,104 +13,63 @@ function buildNotesPrompt(topic: string, audience: string, generateMCQs: boolean
     formatInstruction = "Follow a high-quality academic textbook format. Provide deep theoretical explanations, detailed context, and structured academic rigor.";
   }
 
-  return `Generate comprehensive academic notes for the topic: "${topic}"
+  return `Generate comprehensive academic notes for: "${topic}"
 Target Audience: ${audience}
-Preferred Format: ${format.toUpperCase()} (${formatInstruction})
+Format: ${format.toUpperCase()} (${formatInstruction})
 
-First, determine the subject domain of this topic (e.g., Computer Science, Biology, Physics, Mathematics, History, etc.). Adapt your explanations perfectly to this domain.
+Use markdown with emojis, tables, and clear headings.
+YOU MUST INCLUDE ALL THESE SECTIONS IN ORDER:
 
-Use markdown with emojis, tables, and clear formatting. Cover the following sections comprehensively:
+## 📖 1. TOPIC OVERVIEW
+Definition, real-world relevance, and core applications.
 
-# 📖 1. TOPIC OVERVIEW
-Definition, why it matters, real-world relevance, and core applications.
+## 🧠 2. CORE CONCEPTS
+Key terms, simple explanations, and common misconceptions.
 
-# 🧠 2. CORE CONCEPTS
-For each key concept: definition, simple explanation, important points, and common misconceptions.
-
-${generateMindMap ? `# 🗺️ 3. MINDMAP & HIERARCHY
-Provide a visual representation of the topic.
+${generateMindMap ? `## 🗺️ 3. MINDMAP & HIERARCHY
 You MUST use a Mermaid.js diagram.
-STRICT SYNTAX RULES:
-- Start with \`graph TD\`
-- Use ONLY alphanumeric IDs (A, B, C)
-- ALWAYS use quoted labels: A["Your Text"]
-- NEVER use special characters like (), [], {}, --> inside labels.
-Example:
 \`\`\`mermaid
 graph TD
-  A["Main"] --> B["Sub"]
-\`\`\`
-Do NOT use Mermaid diagrams in any other section. Use plain text or markdown tables elsewhere.` : ''}
+  A["Main Concept"] --> B["Sub Topic"]
+\`\`\`` : ''}
 
-# 📚 ${generateMindMap ? '4' : '3'}. IN-DEPTH EXPLANATION
-Detailed theoretical explanation. If it's a scientific/math topic, include derivations, rules, and fundamental principles. If history/arts, include context and impact. Include a comparison table if applicable.
+## 📚 ${generateMindMap ? '4' : '3'}. IN-DEPTH EXPLANATION
+Detailed theoretical context and comparison tables.
 
-# ⚙️ ${generateMindMap ? '5' : '4'}. PROCESS / WORKFLOW / ALGORITHM
-Step-by-step breakdown of how it works. 
-- If Science/Math: Explain the physical process, biological cycle, or mathematical proof.
-- If Tech/Coding: Explain the algorithm, pseudocode, and time/space complexity.
+## ⚙️ ${generateMindMap ? '5' : '4'}. PROCESS & WORKFLOW
+Step-by-step breakdown of how it works.
 
-# 🔬 ${generateMindMap ? '6' : '5'}. PRACTICAL EXAMPLES & FORMULAS (OR CODE)
-- If Science/Math: Provide 2-3 detailed practical examples, crucial formulas, and how to apply them.
-- If Tech/Coding: Provide working code in Python/JavaScript with comments.
-- If Humanities: Provide historical examples, case studies, or quotes.
+## 🔬 ${generateMindMap ? '6' : '5'}. PRACTICAL EXAMPLES & CODE
+Provide working code or worked examples with formulas.
 
-# 🖼️ ${generateMindMap ? '7' : '6'}. VISUAL LEARNING
-Provide 1-2 highly relevant, generated images or diagrams to help visualize the concept.
-You MUST embed these images using the following exact markdown format:
-![Description of image](https://image.pollinations.ai/prompt/Highly%20detailed%20educational%20diagram%20of%20[YOUR_URL_ENCODED_CONCEPT_HERE]?width=800&height=400&nologo=true)
-Ensure the image prompt in the URL describes exactly what should be drawn and is strictly URL-encoded (use %20 for spaces).
-Also include a brief textual description of mental models or graphical intuition.
+## 🖼️ ${generateMindMap ? '7' : '6'}. VISUAL LEARNING
+Embed a relevant diagram:
+![Educational Diagram](https://pollinations.ai/p/Highly%20detailed%20educational%20diagram%20of%20${topic}?width=800&height=400&nologo=true)
 
-# 🎯 ${generateMindMap ? '8' : '7'}. INTERVIEW & VIVA QUESTIONS
-- 3 Basic questions
-- 3 Intermediate questions
-- 2 Advanced questions
-(Include concise answers for all)
+## 🎯 ${generateMindMap ? '8' : '7'}. INTERVIEW & EXAM PREP
+Top 5 Q&A and exam answers.
 
-# 📝 ${generateMindMap ? '9' : '8'}. EXAM PREPARATION
-- 3 short-answer questions
-- 2 detailed descriptive questions
-- 1 essay/long-form question
-(Include structured answers)
-
-${generateMCQs ? `# ❓ ${generateMindMap ? '10' : '9'}. MCQs
-Provide 5 Multiple Choice Questions. You MUST format them EXACTLY as a single JSON array inside a \`\`\`mcq code block.
-Example:
+${generateMCQs ? `## ❓ ${generateMindMap ? '9' : '8'}. MCQs
+PROVIDE 5 MCQs in a JSON array inside a \`\`\`mcq block:
 \`\`\`mcq
 [
-  {
-    "question": "What is the capital of France?",
-    "options": ["London", "Paris", "Berlin", "Madrid"],
-    "answerIndex": 1,
-    "explanation": "Paris is the capital of France."
-  }
+  {"question": "...", "options": ["...", "..."], "answerIndex": 0, "explanation": "..."}
 ]
-\`\`\`
-Do not write anything else in this section outside the mcq code block.` : ''}
+\`\`\`` : ''}
 
-# 🔢 ${generateMindMap ? (generateMCQs ? '11' : '10') : (generateMCQs ? '10' : '9')}. PROBLEM SOLVING & CASE STUDIES
-Provide 2 practice problems, analytical scenarios, or case studies with complete step-by-step solutions.
+## 🌍 ${generateMindMap ? (generateMCQs ? '10' : '9') : (generateMCQs ? '9' : '8')}. REAL-WORLD APPLICATIONS
+Industry examples and trends.
 
-# 🌍 11. REAL-WORLD APPLICATIONS
-Where is this used in the real world today? Give specific industry or everyday examples.
+## ⚡ ${generateMindMap ? (generateMCQs ? '11' : '10') : (generateMCQs ? '10' : '9')}. REVISION CHEAT SHEET
+Top 10 points and formulas.
 
-# ⚡ 12. REVISION CHEAT SHEET
-One-night-before summary: Top 10 must-remember bullet points, core formulas, or key dates/syntax.
+## 🚀 ${generateMindMap ? (generateMCQs ? '12' : '11') : (generateMCQs ? '11' : '10')}. ADVANCED LEARNING & ROADMAP
+Prerequisites and path forward.
 
-# ⚠️ 13. COMMON MISTAKES
-Mistakes students make in exams, labs, or interviews regarding this topic, and how to avoid them.
+## ✅ SUMMARY
+Final recap and takeaways.
 
-# 🚀 14. ADVANCED LEARNING
-Advanced concepts, active research areas, and what the student should learn next.
-
-# 🗺️ 15. LEARNING ROADMAP
-Prerequisites → Beginner → Intermediate → Advanced path for mastering this subject.
-
-# ✅ 16. SUMMARY
-Final recap and the absolute top 5 takeaways.
-
-Be highly accurate, perfectly tailored to the subject domain, and exam-oriented. Use tables and bullet points extensively for readability.`;
+Be highly accurate and exam-oriented. Use tables and bullet points extensively.`;
 }
 
 export async function POST(req: NextRequest) {

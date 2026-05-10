@@ -82,10 +82,10 @@ export default function NotesOutput({ notes, topic, audience, onReset }: Props) 
           return (
             <div key={i} className={s.section}>
               <h2 className={s.secTitle}>{title}</h2>
-              <NotesBody text={body} onImageClick={(url) => setFullScreenContent({ type: 'img', content: url })} onMermaidClick={(chart) => setFullScreenContent({ type: 'mermaid', content: chart })} />
+              <NotesBody text={body} topic={topic} onImageClick={(url) => setFullScreenContent({ type: 'img', content: url })} onMermaidClick={(chart) => setFullScreenContent({ type: 'mermaid', content: chart })} />
             </div>
           );
-        }) : <NotesBody text={notes} onImageClick={(url) => setFullScreenContent({ type: 'img', content: url })} onMermaidClick={(chart) => setFullScreenContent({ type: 'mermaid', content: chart })} />}
+        }) : <NotesBody text={notes} topic={topic} onImageClick={(url) => setFullScreenContent({ type: 'img', content: url })} onMermaidClick={(chart) => setFullScreenContent({ type: 'mermaid', content: chart })} />}
       </div>
 
       {fullScreenContent && (
@@ -146,7 +146,7 @@ function FullScreenModal({ data, onClose }: { data: { type: 'img' | 'mermaid', c
   );
 }
 
-function NotesBody({ text, onImageClick, onMermaidClick }: { text: string, onImageClick: (url: string) => void, onMermaidClick: (chart: string) => void }) {
+function NotesBody({ text, topic, onImageClick, onMermaidClick }: { text: string, topic: string, onImageClick: (url: string) => void, onMermaidClick: (chart: string) => void }) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
@@ -155,22 +155,37 @@ function NotesBody({ text, onImageClick, onMermaidClick }: { text: string, onIma
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
 
-    // Check for image
-    const imgMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-    if (imgMatch) {
-      const url = imgMatch[2];
-      elements.push(
-        <div key={`img-${i}`} style={{ position: "relative", cursor: "zoom-in", margin: "20px 0" }} onClick={() => onImageClick(url)}>
-          <img src={url} alt={imgMatch[1]} style={{ maxWidth: "100%", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)" }} />
-          <div style={{ position: "absolute", top: "10px", right: "10px", background: "rgba(0,0,0,0.6)", padding: "5px 10px", borderRadius: "8px", fontSize: "12px", color: "white" }}>🔍 Full Screen</div>
-        </div>
-      );
-      i++;
-      continue;
-    }
 
-    if (line.startsWith("## ")) {
-      elements.push(<h3 key={i} className={s.h3} style={{color: '#43e6b5'}}>{line.replace(/^##\s*/, "")}</h3>);
+    if (line.startsWith("# ") || line.startsWith("## ")) {
+      const headingText = line.replace(/^[#\s]*/, "");
+      elements.push(<h3 key={i} className={s.h3} style={{color: '#43e6b5', fontSize: line.startsWith("# ") ? '1.4rem' : '1.1rem'}}>{headingText}</h3>);
+      
+      // Safety Net Injection immediately after Visual Learning heading if no image follows
+      if (headingText.toUpperCase().includes("VISUAL LEARNING")) {
+        const nextLine = lines[i+1] || "";
+        if (!nextLine.includes("![")) {
+          const topicPrompt = encodeURIComponent(topic);
+          const finalUrl = `https://pollinations.ai/p/Highly%20detailed%20educational%20diagram%20of%20${topicPrompt}?width=800&height=400&nologo=true`;
+          elements.push(
+            <div key={`safety-${i}`} className={s.imgContainer} onClick={() => onImageClick(finalUrl)}>
+              <div className={s.imgHeader}>
+                 <span className={s.imgTitle}>Generated Topic Illustration</span>
+                 <button className={s.fullScreenBtn}>🔍 Full Screen</button>
+              </div>
+              <img 
+                src={finalUrl} 
+                alt={topic} 
+                className={s.genImg} 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400' viewBox='0 0 800 400'%3e%3crect width='100%25' height='100%25' fill='%231a1a2e'/%3e%3ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='24' fill='%2343e6b5'%3e${encodeURIComponent(topic)} (Diagram)%3c/text%3e%3c/svg%3e`;
+                  target.onerror = null;
+                }}
+              />
+            </div>
+          );
+        }
+      }
     } else if (line.startsWith("### ")) {
       elements.push(<h4 key={i} className={s.h4} style={{color: '#a29bfe'}}>{line.replace(/^###\s*/, "")}</h4>);
     } else if (line.startsWith("**") && line.endsWith("**") && line.length > 4) {
@@ -204,6 +219,96 @@ function NotesBody({ text, onImageClick, onMermaidClick }: { text: string, onIma
       } else {
         elements.push(<div key={i} className={s.codeBlock}><div className={s.codeLang}>{lang||"code"}</div><pre className={s.pre}><code>{codeStr}</code></pre></div>);
       }
+    } else if (line.includes("![")) {
+      const imgRegex = /!\[(.*?)\]\s*\((.*?)\)/g;
+      let match;
+      let lastIdx = 0;
+      const parts = [];
+
+      while ((match = imgRegex.exec(line)) !== null) {
+        const textBefore = line.substring(lastIdx, match.index).trim();
+        if (textBefore) parts.push(<p key={`p-${lastIdx}`} className={s.p} dangerouslySetInnerHTML={{__html: formatInline(textBefore)}}/>);
+        
+        const [, alt, url] = match;
+        const finalUrl = url.includes("pollinations.ai") ? url.replace(/\s/g, "%20") : url;
+        console.log("Rendering Image:", finalUrl);
+        parts.push(
+          <div key={`img-${match.index}`} className={s.imgContainer} onClick={() => onImageClick(finalUrl)}>
+            <div className={s.imgHeader}>
+               <span className={s.imgTitle}>{alt}</span>
+               <button className={s.fullScreenBtn}>🔍 Full Screen</button>
+            </div>
+            <img 
+              src={finalUrl} 
+              alt={alt} 
+              className={s.genImg} 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                const parent = target.parentElement;
+                if (parent) {
+                  const fallback = document.createElement('div');
+                  fallback.style.width = '100%';
+                  fallback.style.height = '300px';
+                  fallback.style.display = 'flex';
+                  fallback.style.alignItems = 'center';
+                  fallback.style.justifyContent = 'center';
+                  fallback.style.backgroundColor = 'rgba(255,255,255,0.02)';
+                  fallback.style.color = '#43e6b5';
+                  fallback.style.fontSize = '14px';
+                  fallback.style.textAlign = 'center';
+                  fallback.style.padding = '20px';
+                  fallback.style.fontStyle = 'italic';
+                  fallback.innerHTML = `<div>[ Illustration: ${alt} ]<br/><span style="opacity: 0.5; font-size: 11px; margin-top: 8px; display: block;">The image could not be loaded from the AI provider.</span></div>`;
+                  parent.replaceChild(fallback, target);
+                }
+              }}
+            />
+          </div>
+        );
+        lastIdx = imgRegex.lastIndex;
+      }
+      
+      const textAfter = line.substring(lastIdx).trim();
+      if (textAfter) parts.push(<p key={`p-${lastIdx}`} className={s.p} dangerouslySetInnerHTML={{__html: formatInline(textAfter)}}/>);
+      
+      elements.push(...parts);
+    } else if (line.includes("VISUAL LEARNING") && !line.includes("![")) {
+      // Safety Net: If AI forgot the image link in the Visual Learning section, inject one
+      const topicPrompt = encodeURIComponent(topic);
+      const finalUrl = `https://pollinations.ai/p/Highly%20detailed%20educational%20diagram%20of%20${topicPrompt}?width=800&height=400&nologo=true`;
+      elements.push(
+        <div key={`safety-${i}`} className={s.imgContainer} onClick={() => onImageClick(finalUrl)}>
+          <div className={s.imgHeader}>
+             <span className={s.imgTitle}>Generated Topic Illustration</span>
+             <button className={s.fullScreenBtn}>🔍 Full Screen</button>
+          </div>
+          <img 
+            src={finalUrl} 
+            alt={topic} 
+            className={s.genImg} 
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              const parent = target.parentElement;
+              if (parent) {
+                const fallback = document.createElement('div');
+                fallback.style.width = '100%';
+                fallback.style.height = '300px';
+                fallback.style.display = 'flex';
+                fallback.style.alignItems = 'center';
+                fallback.style.justifyContent = 'center';
+                fallback.style.backgroundColor = 'rgba(255,255,255,0.02)';
+                fallback.style.color = '#43e6b5';
+                fallback.style.fontSize = '14px';
+                fallback.style.textAlign = 'center';
+                fallback.style.padding = '20px';
+                fallback.style.fontStyle = 'italic';
+                fallback.innerHTML = `<div>[ Diagram: ${topic} ]<br/><span style="opacity: 0.5; font-size: 11px; margin-top: 8px; display: block;">The diagram could not be loaded from the AI provider.</span></div>`;
+                parent.replaceChild(fallback, target);
+              }
+            }}
+          />
+        </div>
+      );
     } else if (line.startsWith("---")) {
       elements.push(<hr key={i} className={s.hr}/>);
     } else if (line.startsWith("|")) {
@@ -237,42 +342,66 @@ function MermaidDiagram({ chart, onFullScreen, isFullScreen = false }: { chart: 
 
   const sanitizeMermaid = (code: string) => {
     let clean = code.trim();
-    // 1. Remove triple backticks if present
-    clean = clean.replace(/```mermaid/g, "").replace(/```/g, "").trim();
+    // 1. Remove triple backticks and language identifier
+    clean = clean.replace(/^```mermaid\s*/i, "").replace(/```$/m, "").trim();
     
-    // 2. Ensure it starts with a valid keyword
-    const validKeywords = ["graph", "mindmap", "flowchart", "sequenceDiagram", "gantt", "classDiagram", "stateDiagram", "erDiagram"];
-    if (!validKeywords.some(k => clean.startsWith(k))) {
-      clean = "graph TD\n" + clean;
+    // 2. Fix truncated keywords (e.g. "graph T" -> "graph TD")
+    if (clean.toLowerCase().startsWith("graph t") && !clean.toLowerCase().startsWith("graph td")) {
+      clean = clean.replace(/^graph t/i, "graph TD");
     }
 
-    // 3. Aggressive Syntax Fixing
+    // 3. Identify type
     const lines = clean.split("\n");
-    const fixedLines = lines.map(line => {
-      let l = line.trim();
-      if (!l || validKeywords.some(k => l.startsWith(k))) return l;
+    const isMindmap = clean.toLowerCase().includes("mindmap") || lines.some(l => l.startsWith("  ") || l.startsWith("\t"));
+    
+    // 4. Ensure it starts with a valid keyword
+    const validKeywords = ["graph", "mindmap", "flowchart", "sequenceDiagram", "gantt", "classDiagram", "stateDiagram", "erDiagram", "pie"];
+    if (!validKeywords.some(k => clean.toLowerCase().startsWith(k.toLowerCase()))) {
+      clean = (isMindmap ? "mindmap\n" : "graph TD\n") + clean;
+    }
 
-      // Match connections like A --> B or A-->B or A --- B
-      if (l.includes("-->") || l.includes("---") || l.includes("==>")) {
-        const separator = l.includes("-->") ? "-->" : (l.includes("---") ? "---" : "==>");
-        return l.split(separator).map(part => {
-          const p = part.trim();
-          if (p.includes("[") || p.includes("\"") || p.includes("(")) return p;
-          const id = p.replace(/[^a-zA-Z0-9]/g, ""); // Fixed 0-9
-          return id ? `${id}["${p}"]` : "";
-        }).filter(Boolean).join(` ${separator} `);
-      }
+    // 5. Syntax Fixing
+    const fixedLines = clean.split("\n").map((line, idx, arr) => {
+      let l = line.trimEnd(); 
+      if (!l.trim()) return l;
       
-      // If it's a mindmap line like "    Concept", ensure no illegal chars if it's not quoted
-      if (clean.startsWith("mindmap")) {
-        // Mindmap is indentation based, just clean the line
-        return l.replace(/[()\[\]{}]/g, "");
-      }
+      // If it's a keyword line, return as is
+      if (validKeywords.some(k => l.trim().toLowerCase().startsWith(k.toLowerCase()))) return l;
+
+      // Fix truncated connections at end of line (e.g. "A -->")
+      l = l.replace(/(-{2,}>|==>|-{1,3}|-\.->)$/, "");
+
+      // Fix unclosed quotes/brackets
+      if (l.includes("[\"") && !l.includes("\"]")) l += "\"]";
+      else if (l.includes("\"") && (l.match(/"/g) || []).length % 2 !== 0) l += "\"";
+      
+      if (l.includes("[") && !l.includes("]")) l += "]";
+      if (l.includes("((") && !l.includes("))")) l += "))";
+      if (l.includes("(") && !l.includes(")")) l += ")";
+      
+      // Remove illegal characters
+      l = l.replace(/[#$]/g, "");
+
+      // Special case: if this is the last line and it looks incomplete, just drop it
+      if (idx === arr.length - 1 && (l.endsWith("-") || l.endsWith("="))) return "";
 
       return l;
     });
 
-    return fixedLines.join("\n");
+    return fixedLines.filter(Boolean).join("\n");
+  };
+
+  const fallbackSanitize = (code: string) => {
+    const lines = code.split("\n")
+      .map(l => l.replace(/[^a-zA-Z0-9\s]/g, "").trim())
+      .filter(l => l.length > 2);
+    if (lines.length === 0) return "graph TD\n  Error[\"Invalid Diagram Data\"]";
+    let fallback = "graph TD\n";
+    lines.forEach((line, i) => {
+      fallback += `  node${i}["${line}"]\n`;
+      if (i > 0) fallback += `  node${i-1} --> node${i}\n`;
+    });
+    return fallback;
   };
 
   useEffect(() => {
@@ -280,27 +409,35 @@ function MermaidDiagram({ chart, onFullScreen, isFullScreen = false }: { chart: 
       const id = `mermaid-${Math.random().toString(36).substring(7)}`;
       const sanitizedChart = sanitizeMermaid(chart);
       
-      mermaid.render(id, sanitizedChart).then(({ svg }) => {
-        if (ref.current) {
-          ref.current.innerHTML = svg;
-          const svgElement = ref.current.querySelector('svg');
-          if (svgElement) {
-            svgElement.style.width = '100%';
-            svgElement.style.height = isFullScreen ? '80vh' : 'auto';
-            svgElement.style.maxWidth = '100%';
+      const render = (code: string, isRetry = false) => {
+        mermaid.render(id, code).then(({ svg }) => {
+          if (ref.current) {
+            ref.current.innerHTML = svg;
+            const svgElement = ref.current.querySelector('svg');
+            if (svgElement) {
+              svgElement.style.width = '100%';
+              svgElement.style.height = isFullScreen ? '80vh' : 'auto';
+              svgElement.style.maxWidth = '100%';
+            }
           }
-        }
-      }).catch((e) => {
-        console.error("Mermaid error:", e);
-        if (ref.current) {
-          ref.current.innerHTML = `
-            <div style="color:#ff6584; padding: 15px; font-size: 12px; text-align: center; border: 1px dashed rgba(255,101,132,0.2); border-radius: 8px; background: rgba(255,101,132,0.02);">
-              <div style="font-weight:bold; margin-bottom: 4px;">Diagram Render Failed</div>
-              <div style="font-family:monospace; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e.message || "Invalid Syntax"}</div>
-            </div>
-          `;
-        }
-      });
+        }).catch((e) => {
+          if (!isRetry) {
+            console.warn("Mermaid first attempt failed, trying fallback...", e);
+            render(fallbackSanitize(chart), true);
+          } else {
+            console.error("Mermaid fallback also failed:", e);
+            if (ref.current) {
+              ref.current.innerHTML = `
+                <div style="color:#ff6584; padding: 15px; font-size: 12px; text-align: center; border: 1px dashed rgba(255,101,132,0.2); border-radius: 8px; background: rgba(255,101,132,0.02);">
+                  <div style="font-weight:bold; margin-bottom: 4px;">Diagram Unavailable</div>
+                  <div style="opacity:0.7;">The AI generated a complex diagram that couldn't be rendered.</div>
+                </div>
+              `;
+            }
+          }
+        });
+      };
+      render(sanitizedChart);
     }
   }, [chart, isFullScreen]);
   
