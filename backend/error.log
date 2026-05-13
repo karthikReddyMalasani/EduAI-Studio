@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\Karth\OneDrive\Desktop\AI_Syallabus\backend\test_image.py", line 15, in <module>
-    response = client.chat.completions.create(
-               ^^^^^^
-NameError: name 'client' is not defined

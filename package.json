@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:all": "concurrently \"npm run dev\" \"npm run backend:django\" \"npm run backend:fastapi\"",
+    "backend:django": "cd backend && python manage.py runserver 8001",
+    "backend:fastapi": "cd fastapi_service && python main.py",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -25,6 +28,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "typescript": "^5"
