@@ -13,11 +13,27 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 
-from .models import Test, Question, Option, StudyNote
+from .models import Test, Question, Option, StudyNote, Video
 from .serializers import (
     GenerateRequestSerializer, TestSerializer, TestSummarySerializer,
-    StudyNoteSerializer, GenerateNotesRequestSerializer
+    StudyNoteSerializer, GenerateNotesRequestSerializer, VideoSerializer
 )
+
+
+class VideoListView(APIView):
+    def get(self, request):
+        user = request.user if request.user.is_authenticated else None
+        videos = Video.objects.filter(user=user)
+        serializer = VideoSerializer(videos, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user = request.user if request.user.is_authenticated else None
+        serializer = VideoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 from .services.ai_service import generate_questions, generate_study_notes, generate_topic_video
 from .services.pdf_service import generate_pdf, generate_note_pdf
 
@@ -115,6 +131,21 @@ class ExportPDFView(APIView):
 
 class StudyNoteView(APIView):
     def post(self, request):
+        # Check if content is provided directly (for saving pre-generated notes)
+        content = request.data.get('content')
+        if content:
+            user = request.user if request.user.is_authenticated else None
+            note = StudyNote.objects.create(
+                user=user,
+                title=request.data.get('title', 'Generated Note'),
+                subject=request.data.get('subject', ''),
+                topics=request.data.get('topics', []),
+                style=request.data.get('style', 'detailed'),
+                content=content
+            )
+            serializer_out = StudyNoteSerializer(note)
+            return Response(serializer_out.data, status=status.HTTP_201_CREATED)
+
         serializer = GenerateNotesRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

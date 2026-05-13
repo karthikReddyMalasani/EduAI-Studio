@@ -4,6 +4,8 @@ import Link from "next/link";
 import s from "./notes-generator.module.css";
 import NotesOutput from "./NotesOutput";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+
 const AUDIENCES = [
   { value:"School Student", icon:"🎒", desc:"Age 12-17" },
   { value:"College Student", icon:"🎓", desc:"Age 18-24" },
@@ -11,14 +13,20 @@ const AUDIENCES = [
   { value:"Interview Prep", icon:"💼", desc:"Job Seekers" },
   { value:"Advanced Learner", icon:"🚀", desc:"Expert Level" },
 ];
+
 export default function NotesGeneratorPage() {
   const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
   const [loading, setLoading] = useState(false);
   const [stepIdx, setStepIdx] = useState(-1);
+  const [generateMCQs, setGenerateMCQs] = useState(true);
+  const [generateMindMap, setGenerateMindMap] = useState(true);
+
   const STEPS = [
-    "Overview", "Concepts", "Mindmap", "Theory", "Process", 
-    "Examples", "Visuals", "Preparation", "MCQs", 
+    "Overview", "Concepts", 
+    ...(generateMindMap ? ["Mindmap"] : []),
+    "Theory", "Process", "Examples", "Visuals", "Preparation",
+    ...(generateMCQs ? ["MCQs"] : []),
     "Applications", "Revision", "Advanced"
   ];
   const [notes, setNotes] = useState("");
@@ -75,6 +83,24 @@ export default function NotesGeneratorPage() {
           setStepIdx(Math.min(lastNum - 1, STEPS.length - 1));
         }
       }
+
+      // Save to History after full generation
+      try {
+        await fetch(`${API_URL}/api/notes/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: topic,
+            subject: "Academic", // Or dynamic if available
+            topics: [topic],
+            style: format,
+            content: accumulated
+          })
+        });
+      } catch (saveErr) {
+        console.error("Failed to save to history:", saveErr);
+      }
+
       setTimeout(() => outputRef.current?.scrollIntoView({ behavior:"smooth" }), 100);
     } catch { setError("Network error. Please check your connection."); }
     finally { setLoading(false); setStepIdx(-1); }

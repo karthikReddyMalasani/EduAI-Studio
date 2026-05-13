@@ -7,7 +7,7 @@ export default function HomePage() {
       <div className={styles.orb1} /><div className={styles.orb2} /><div className={styles.orb3} />
       <header className={styles.header}>
         <div className={styles.logo}>⚡ EduAI Studio</div>
-        <p className={styles.tagline}>AI-Powered Educational Content — <span>Scripts · Notes · Scripts</span></p>
+        <p className={styles.tagline}>AI-Powered Educational Content — <span>Videos · Notes · Quizzes</span></p>
         <Link href="/history" className={styles.modeTag} style={{ marginTop: "15px", display: "inline-block", borderColor: "#6c63ff", color: "#6c63ff" }}>📜 View History</Link>
       </header>
       <main className={styles.main}>
@@ -54,7 +54,7 @@ export default function HomePage() {
           <div className={styles.stat}><span className={styles.statNum}>∞</span><span className={styles.statLabel}>Topics</span></div>
         </div>
       </main>
-      <footer className={styles.footer}>Powered by <strong>Groq · LLaMA 3.3</strong> · Built for Educators & Students</footer>
+      <footer className={styles.footer}>Powered by <strong>Top-Tier AI Models</strong> · Built for Educators & Students</footer>
     </div>
   );
 }

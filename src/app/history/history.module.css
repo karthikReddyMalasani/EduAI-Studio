@@ -1,0 +1,18 @@
+.page { min-height:100vh; position:relative; background:#0b0f19; color:white; font-family:var(--font-outfit); }
+.header { padding:60px 20px 40px; text-align:center; }
+.title { font-size:2.5rem; font-weight:900; margin-bottom:10px; }
+.sub { color:#aaa; font-size:1rem; }
+.content { max-width:1000px; margin:0 auto; padding:0 20px 60px; display:flex; flex-direction:column; gap:60px; }
+.section { }
+.secTitle { font-size:1.5rem; font-weight:800; color:#fff; margin-bottom:24px; display:flex; align-items:center; gap:12px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px; }
+.card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:20px; padding:24px; transition:transform 0.2s, border-color 0.2s; }
+.card:hover { transform:translateY(-4px); border-color:rgba(108,99,255,0.3); }
+.cardHeader { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.cardTitle { font-size:1.1rem; font-weight:700; margin:0; line-height:1.3; }
+.badge { font-size:0.7rem; font-weight:700; background:rgba(108,99,255,0.15); color:#9d97ff; padding:4px 10px; border-radius:20px; text-transform:uppercase; }
+.cardMeta { font-size:0.85rem; color:#666; margin-bottom:20px; }
+.cardActions { display:flex; gap:12px; }
+.btn { flex:1; text-align:center; padding:10px; border-radius:12px; font-size:0.9rem; font-weight:600; border:1px solid rgba(108,99,255,0.3); color:#a29bfe; transition:all 0.2s; text-decoration:none; }
+.btn:hover { background:rgba(108,99,255,0.1); }
+.empty { color:#444; font-style:italic; }

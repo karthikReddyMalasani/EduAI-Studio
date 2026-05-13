@@ -5,6 +5,9 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes timeout for heavy rendering
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();

@@ -1,5 +1,5 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig, interpolate, spring, AbsoluteFill } from "remotion";
+import { useCurrentFrame, useVideoConfig, interpolate, spring, AbsoluteFill, Audio } from "remotion";
 
 export interface AlgorithmStep {
   index: number;
@@ -45,6 +45,12 @@ export const AlgorithmVideo: React.FC<AlgorithmVideoProps> = ({ title, array, st
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0b0f19", color: "white", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+      {/* Background Music */}
+      <Audio 
+        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" 
+        volume={0.08}
+        placeholder={null}
+      />
       {/* Background Glow */}
       <div style={{
         position: "absolute",

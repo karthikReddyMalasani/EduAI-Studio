@@ -1,10 +1,14 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import s from "./video-generator.module.css";
 import { Player } from "@remotion/player";
 import { AlgorithmVideo } from "../../remotion/AlgorithmVideo";
 import { GenericVideo } from "../../remotion/GenericVideo";
+import TimelineEditor from "./TimelineEditor";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 const MODES = [
   { value:"algorithm", emoji:"⚡", name:"Algorithm Visualizer", hint:"Step-by-step execution, pointer movement, dry run, time complexity" },
   { value:"cinematic", emoji:"🎬", name:"Cinematic Theory", hint:"Diagrams, formulas, real-world analogies, exam-oriented storytelling" },
@@ -32,22 +36,56 @@ const DURATIONS = [
   { value:"5 min", icon:"📚", label:"Standard", scenes:"10 scenes" },
   { value:"10 min", icon:"🎓", label:"Deep Dive", scenes:"14 scenes" },
 ];
+const VOICES = [
+  { id: "en-US-GuyNeural", name: "Professional Male (Guy)", icon: "👨‍💼" },
+  { id: "en-US-AriaNeural", name: "Energetic Female (Aria)", icon: "👩‍🏫" },
+  { id: "en-GB-RyanNeural", name: "British Academic (Ryan)", icon: "🇬🇧" },
+  { id: "en-IN-PrabhatNeural", name: "Indian English (Prabhat)", icon: "🇮🇳" },
+];
+
 const STEPS = ["Crafting storyline","Designing scenes","Writing narration","Adding effects","Finalizing script"];
 
 export default function VideoGeneratorPage() {
+  const searchParams = useSearchParams();
+  const outputRef = useRef<HTMLDivElement>(null);
+  
   const [topic, setTopic] = useState("");
   const [mode, setMode] = useState("standard");
   const [audience, setAudience] = useState("");
   const [style, setStyle] = useState("");
   const [duration, setDuration] = useState("");
+  const [voice, setVoice] = useState("en-US-GuyNeural");
   const [loading, setLoading] = useState(false);
   const [stepIdx, setStepIdx] = useState(-1);
   const [scriptData, setScriptData] = useState<any>(null);
   const [showCaptions, setShowCaptions] = useState(true);
   const [error, setError] = useState("");
   const [statusLog, setStatusLog] = useState<string[]>([]);
-  const outputRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) {
+      async function fetchVideo() {
+        try {
+          const res = await fetch(`${API_URL}/api/videos/history/`);
+          if (res.ok) {
+            const history = await res.json();
+            const video = history.find((v: any) => v.id === id);
+            if (video) {
+              setTopic(video.title);
+              setScriptData(video.script_data);
+              setMode(video.video_type);
+              // Scroll to player
+              setTimeout(() => outputRef.current?.scrollIntoView({ behavior: "smooth" }), 500);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load video from history:", err);
+        }
+      }
+      fetchVideo();
+    }
+  }, [searchParams]);
   const addLog = (msg: string) => setStatusLog(prev => [...prev.slice(-4), msg]);
 
   // WebM Export State
@@ -118,6 +156,23 @@ export default function VideoGeneratorPage() {
       }
 
       setScriptData(jsonResult);
+
+      // Save to History after generation
+      try {
+        await fetch(`${API_URL}/api/videos/history/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: jsonResult.title || topic,
+            subject: "Academic",
+            topics: [topic],
+            video_type: jsonResult.videoType || "generic",
+            script_data: jsonResult
+          })
+        });
+      } catch (saveErr) {
+        console.error("Failed to save video to history:", saveErr);
+      }
       setTimeout(() => outputRef.current?.scrollIntoView({ behavior:"smooth" }), 100);
     } catch { setError("Network error. Please check your connection."); }
     finally { clearInterval(interval); setLoading(false); setStepIdx(-1); }
@@ -161,29 +216,22 @@ export default function VideoGeneratorPage() {
   const handleRenderMP4 = async () => {
     if (!scriptData) return;
     setIsRendering(true);
+    addLog("Initializing Render Engine...");
+    
     try {
+      addLog("Bundling & Rendering (may take 1-2 mins)...");
       const res = await fetch("/api/render-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scriptData, topic }),
       });
+
       if (!res.ok) {
-        let errorMsg = "Render failed";
-        try {
-          const contentType = res.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const data = await res.json();
-            errorMsg = data.error || errorMsg;
-          } else {
-            const text = await res.text();
-            errorMsg = `Server error (${res.status}): ${text.includes("<!DOCTYPE") ? "Received HTML instead of JSON." : text.slice(0, 100)}`;
-          }
-        } catch (e) {
-          errorMsg = `Error parsing server response (${res.status})`;
-        }
-        throw new Error(errorMsg);
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Render failed (${res.status})`);
       }
       
+      addLog("Downloading finished video...");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -191,8 +239,10 @@ export default function VideoGeneratorPage() {
       a.download = `${topic.replace(/\s+/g,"-") || 'video'}-hd.mp4`;
       a.click();
       URL.revokeObjectURL(url);
+      addLog("Download successful!");
     } catch (err: any) {
       console.error(err);
+      addLog("Error: " + err.message);
       alert(err.message || "Failed to render MP4. Ensure local server has FFmpeg.");
     } finally {
       setIsRendering(false);
@@ -270,6 +320,23 @@ export default function VideoGeneratorPage() {
                   <span className={s.durVal}>{d.value}</span>
                   <span className={s.durLabel}>{d.label}</span>
                   <span className={s.durScenes}>{d.scenes}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* AI Voice */}
+          <div className={s.section}>
+            <label className={s.label}><span className={s.labelIcon}>🔊</span>AI Narrator Voice</label>
+            <div className={s.audienceGrid}>
+              {VOICES.map(v => (
+                <button 
+                  key={v.id} 
+                  className={`${s.audCard} ${voice === v.id ? s.audCardActive : ""}`}
+                  onClick={() => setVoice(v.id)}
+                  disabled={loading}
+                >
+                  <span className={s.audIcon}>{v.icon}</span>
+                  <span className={s.audLabel}>{v.name}</span>
                 </button>
               ))}
             </div>
@@ -389,7 +456,16 @@ export default function VideoGeneratorPage() {
                   autoPlay
                   loop
                 />
-              ) : scriptData.videoType === "algorithm" && scriptData.steps ? (
+              ) : null}
+
+              {scriptData.videoType === "generic" && (
+                <TimelineEditor 
+                  scenes={scriptData.scenes || []} 
+                  onUpdate={(newScenes) => setScriptData({ ...scriptData, scenes: newScenes })} 
+                />
+              )}
+              
+              {scriptData.videoType === "algorithm" && scriptData.steps ? (
                 <Player
                   component={AlgorithmVideo}
                   inputProps={{

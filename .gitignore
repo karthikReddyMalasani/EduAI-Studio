@@ -59,3 +59,9 @@ db.sqlite3-journal
 # Django Media / Static files
 media/
 backend/media/
+# AI / RAG
+chroma_db/
+temp_*
+*.mp3
+*.mp4
+*.webm

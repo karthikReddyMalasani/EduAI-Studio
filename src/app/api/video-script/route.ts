@@ -4,8 +4,20 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const SITE_URL = process.env.URL || "https://eduai-studio.netlify.app";
 
 function buildPrompt(topic: string, audience: string, style: string, duration: string, mode: string): string {
+  let modeInstruction = "";
+  if (mode === 'storytelling') {
+    modeInstruction = "Use an 'Anime Storytelling' approach. Include two characters: 'Kai' (the curious student) and 'Sensei' (the wise mentor). The narration should be a dialogue between them where Sensei explains the topic using metaphors and Kai asks clarifying questions.";
+  } else if (mode === 'cinematic') {
+    modeInstruction = "Use a 'Cinematic Theory' approach. The narration should be epic, dramatic, and focus on the grand impact of the concept. Use sophisticated vocabulary and powerful analogies.";
+  } else if (mode === 'algorithm') {
+    modeInstruction = "Focus on the 'Algorithm Visualizer' aspect. Provide a clear, step-by-step trace of the logic. Mention time and space complexity in the narration.";
+  } else {
+    modeInstruction = "Provide a standard, well-balanced educational script covering theory, examples, and summaries.";
+  }
+
   return `Generate an educational video JSON script for the topic: "${topic}".
 Target Audience: ${audience}. Style: ${style}. Duration: ${duration}.
+Mode: ${mode.toUpperCase()} (${modeInstruction})
 
 First, classify the topic. If it is a specific coding algorithm or data structure that requires an array visualization (e.g., "Binary Search", "Kadane's Algorithm", "Sort"), use the "algorithm" schema. For ANY other subject (Physics, Biology, History, Math, general programming concepts, etc.), use the "generic" schema.
 
@@ -44,8 +56,11 @@ SCHEMA 2 (generic):
 
 For "generic", use at least 6-10 scenes depending on the duration requested. 
 For "algorithm", provide a complete step-by-step trace.
-Ensure "narration" is educational, engaging, and perfectly tailored to the audience.`;
+Ensure "narration" is educational, engaging, and perfectly tailored to the audience and the specified MODE.`;
 }
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60 seconds timeout
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,13 +98,13 @@ export async function POST(req: NextRequest) {
           messages: [
             {
               role: "system",
-              content: "You are an AI that generates valid JSON data for programmatic video generation. You must return RAW JSON. Do not use markdown formatting like ```json.",
+              content: "You are an AI that generates valid JSON data for programmatic video generation. You must return RAW JSON. Do not use markdown formatting like ```json. Complete the full script without truncation.",
             },
             { role: "user", content: prompt },
           ],
           response_format: { type: "json_object" },
-          max_tokens: 4096,
-          temperature: 0.75,
+          max_tokens: 8192,
+          temperature: 0.6,
           stream: true,
         }),
       }

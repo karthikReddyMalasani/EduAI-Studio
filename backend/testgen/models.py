@@ -68,3 +68,18 @@ class StudyNote(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.subject}"
+class Video(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='videos')
+    title = models.CharField(max_length=255)
+    subject = models.CharField(max_length=100, blank=True)
+    topics = models.JSONField(default=list)
+    video_type = models.CharField(max_length=20, default='generic')
+    script_data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} ({self.video_type})"

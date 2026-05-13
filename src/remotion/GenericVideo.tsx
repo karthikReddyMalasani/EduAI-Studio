@@ -56,6 +56,12 @@ export const GenericVideo: React.FC<GenericVideoProps> = ({ title, scenes, showC
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0b0f19", color: "white", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+      {/* Background Music */}
+      <Audio 
+        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
+        volume={0.1}
+        placeholder={null}
+      />
       {/* Dynamic Background */}
       <div style={{
         position: "absolute",

@@ -11,6 +11,7 @@
   "dependencies": {
     "@remotion/bundler": "^4.0.459",
     "@remotion/cli": "^4.0.459",
+    "@remotion/google-fonts": "^4.0.460",
     "@remotion/player": "^4.0.459",
     "@remotion/renderer": "^4.0.459",
     "html2pdf.js": "^0.14.0",

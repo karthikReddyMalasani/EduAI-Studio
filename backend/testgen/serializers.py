@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Test, Question, Option, StudyNote
+from .models import Test, Question, Option, StudyNote, Video
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -58,3 +58,7 @@ class GenerateNotesRequestSerializer(serializers.Serializer):
     subject = serializers.CharField(max_length=100)
     topics = serializers.ListField(child=serializers.CharField(), min_length=1)
     style = serializers.ChoiceField(choices=['exam', 'detailed', 'flashcard', 'mindmap', 'revision'], default='detailed')
+class VideoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Video
+        fields = ['id', 'title', 'subject', 'topics', 'video_type', 'script_data', 'created_at']

@@ -72,6 +72,9 @@ Final recap and takeaways.
 Be highly accurate and exam-oriented. Use tables and bullet points extensively.`;
 }
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60 seconds timeout
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -109,12 +112,12 @@ export async function POST(req: NextRequest) {
             {
               role: "system",
               content:
-                "You are an expert academic tutor and university professor across all subjects (Science, Math, Humanities, Computer Science). Generate comprehensive, well-structured, exam-ready notes tailored strictly to the subject domain of the topic provided. Be thorough yet clear.",
+                "You are an expert academic tutor and university professor across all subjects (Science, Math, Humanities, Computer Science). Generate comprehensive, well-structured, exam-ready notes tailored strictly to the subject domain of the topic provided. Be thorough yet clear. Do not stop until you have completed all requested sections.",
             },
             { role: "user", content: prompt },
           ],
-          max_tokens: 4096,
-          temperature: 0.6,
+          max_tokens: 8192,
+          temperature: 0.5,
           stream: true,
         }),
       }
